@@ -23,25 +23,10 @@ bool Context::Init(){
     };
 
     // VAO 생성
-    glGenVertexArrays(1, &m_vertexArrayObject); // VAO의 갯수는 하나
-    glBindVertexArray(m_vertexArrayObject); // 바인딩
-    /*
-    VBO(정점 데이터를 담은 버퍼 오브젝트), 색상 위치 텍스쳐 법선벡터 등의 정보 포함
-    VBO 생성 및 정점 데이터를 GPU로 복사
-    
-    GL_STATIC_DRAW : vertex의 위치를 세팅 후 바꾸지 않을 것임
-    GL_DYNAMIC_DRAW : vertex의 위치를 바꿀 것임
-    GL_STREAM_DRAW : 버퍼를 생성 후 한번 그린 다음에 버릴 것임
-    */
+    m_vertexLayout = VertexLayout::Create();
     m_vertexBuffer = Buffer::CreateWithData(GL_ARRAY_BUFFER, GL_STATIC_DRAW, verticles, sizeof(float) * 12);
 
-    /*
-    attribute의 생김새 지정
-    정점의 n번째 attribute, point가 3개, 각각은 float 값,
-    normalize 필요 없음, stride의 크기, 첫 정점의 해당 attribute 까지의 간격(offset)
-    */
-    glEnableVertexAttribArray(0); // 0번 attribute 사용할 것임
-    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,sizeof(float) * 3, 0);
+    m_vertexLayout->SetAttrib(0,3,GL_FLOAT,GL_FALSE,sizeof(float) * 3, 0);
 
     // indices는 attribute array 생성할 필요 없음
     m_indexBuffer = Buffer::CreateWithData(GL_ELEMENT_ARRAY_BUFFER, GL_STATIC_DRAW, indices, sizeof(uint32_t) * 6);
