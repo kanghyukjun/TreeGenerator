@@ -32,3 +32,6 @@ Program::~Program(){
     }
 }
 
+void Program::Use() const {
+    glUseProgram(m_program);
+}
