@@ -15,7 +15,7 @@ Shader::~Shader(){
 bool Shader::LoadFile(const std::string& filename, GLenum shaderType) {
 	auto result = LoadTextFile(filename);
 	if (!result.has_value()) return false; // optional의 값이 존재하는지 확인
-
+	
 	auto& code = result.value();
 	const char* codePtr = code.c_str();
 	int32_t codeLength = (int32_t)code.length();

@@ -6,6 +6,12 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
+// matX, X = 2, 3, 4
+// vecX, X = 2, 3, 4
+// 벡터 원소 접근 : .x, .y, .z, .w
+// 얻어오고 싶은 인덱스 연속으로 쓰기 가능, ex) .xyz => vec3
+// ex) vec2 someVec; vec4 = someVec.xyxx;
+
 // 콜백함수 정의
 // 윈도우 사이즈가 변경되었을 때
 void OnFramebufferSizeChange(GLFWwindow* window, int width, int height) {
