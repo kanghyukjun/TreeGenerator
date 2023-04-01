@@ -14,6 +14,11 @@ public:
     ~Program();
     uint32_t Get() const {return m_program;}
     void Use() const;
+
+    // ... in Program class declaration
+    void SetUniform(const std::string& name, int value) const;
+    void SetUniform(const std::string& name, const glm::mat4& value) const;
+
 private:
     Program() {}
     bool Link(const std::vector<ShaderPtr>& shaders);
