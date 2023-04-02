@@ -12,21 +12,21 @@ ContextUPtr Context::Create(){
 
 void Context::ProcessInput(GLFWwindow* window) {
     const float cameraSpeed = 0.005f;
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+    if(glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
         m_cameraPos += cameraSpeed * m_cameraFront;
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+    if(glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
         m_cameraPos -= cameraSpeed * m_cameraFront;
 
     auto cameraRight = glm::normalize(glm::cross(m_cameraUp, -m_cameraFront));
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+    if(glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
         m_cameraPos += cameraSpeed * cameraRight;
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+    if(glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
         m_cameraPos -= cameraSpeed * cameraRight;    
 
     auto cameraUp = glm::normalize(glm::cross(-m_cameraFront, cameraRight));
-    if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
+    if(glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
         m_cameraPos += cameraSpeed * cameraUp;
-    if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
+    if(glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
         m_cameraPos -= cameraSpeed * cameraUp;
 }
 
@@ -46,23 +46,23 @@ void Context::MouseMove(double x, double y) {
     m_cameraYaw -= deltaPos.x * cameraRotSpeed;
     m_cameraPitch -= deltaPos.y * cameraRotSpeed;
 
-    if (m_cameraYaw < 0.0f)   m_cameraYaw += 360.0f;
-    if (m_cameraYaw > 360.0f) m_cameraYaw -= 360.0f;
+    if(m_cameraYaw < 0.0f)   m_cameraYaw += 360.0f;
+    if(m_cameraYaw > 360.0f) m_cameraYaw -= 360.0f;
 
-    if (m_cameraPitch > 89.0f)  m_cameraPitch = 89.0f;
-    if (m_cameraPitch < -89.0f) m_cameraPitch = -89.0f;
+    if(m_cameraPitch > 89.0f)  m_cameraPitch = 89.0f;
+    if(m_cameraPitch < -89.0f) m_cameraPitch = -89.0f;
 
     m_prevMousePos = pos;    
 }
 
 void Context::MouseButton(int button, int action, double x, double y) {
-    if (button == GLFW_MOUSE_BUTTON_RIGHT) {
-        if (action == GLFW_PRESS) {
+    if(button == GLFW_MOUSE_BUTTON_RIGHT) {
+        if(action == GLFW_PRESS) {
             // 마우스 조작 시작 시점에 현재 마우스 커서 위치 저장
             m_prevMousePos = glm::vec2((float)x, (float)y);
             m_cameraControl = true;
         }
-        else if (action == GLFW_RELEASE) {
+        else if(action == GLFW_RELEASE) {
             m_cameraControl = false;
         }
     }
@@ -122,8 +122,8 @@ bool Context::Init(){
     // indices는 attribute array 생성할 필요 없음
     m_indexBuffer = Buffer::CreateWithData(GL_ELEMENT_ARRAY_BUFFER, GL_STATIC_DRAW, indices, sizeof(uint32_t) * 36);
 
-    ShaderPtr vertShader = Shader::CreateFromFile("./shader/texture.vs", GL_VERTEX_SHADER);
-	ShaderPtr fragShader = Shader::CreateFromFile("./shader/texture.fs", GL_FRAGMENT_SHADER);
+    ShaderPtr vertShader = Shader::CreateFromFile("./shader/lighting.vs", GL_VERTEX_SHADER);
+	ShaderPtr fragShader = Shader::CreateFromFile("./shader/lighting.fs", GL_FRAGMENT_SHADER);
     if(!vertShader || !fragShader)
         return false;
 	SPDLOG_INFO("vertex shader id: {}", vertShader->Get());
@@ -159,7 +159,7 @@ bool Context::Init(){
 
 // Main의 while문에서 반복
 void Context::Render() {
-    if (ImGui::Begin("UI window")) {
+    if(ImGui::Begin("UI window")) {
         if(ImGui::ColorEdit4("clear color", glm::value_ptr(m_clearColor))){
             glClearColor(m_clearColor.x, m_clearColor.y, m_clearColor.z, m_clearColor.w);
         }
@@ -173,8 +173,18 @@ void Context::Render() {
             m_cameraPitch = 0.0f;
             m_cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
         }
+        if(ImGui::CollapsingHeader("light")) {
+            ImGui::ColorEdit3("light color", glm::value_ptr(m_lightColor));
+            ImGui::ColorEdit3("object color", glm::value_ptr(m_objectColor));
+            ImGui::SliderFloat("ambient strength", &m_ambientStrength, 0.0f, 1.0f);
+        }
     }
     ImGui::End();
+
+    m_program->Use();
+    m_program->SetUniform("lightColor", m_lightColor);
+    m_program->SetUniform("objectColor", m_objectColor);
+    m_program->SetUniform("ambientStrength", m_ambientStrength);
     
     std::vector<glm::vec3> cubePositions = {
         glm::vec3( 0.0f, 0.0f, 0.0f),
@@ -203,7 +213,7 @@ void Context::Render() {
         m_cameraPos + m_cameraFront,
         m_cameraUp);
 
-    for (size_t i = 0; i < cubePositions.size(); i++){
+    for(size_t i = 0; i < cubePositions.size(); i++){
         auto& pos = cubePositions[i];
         auto model = glm::translate(glm::mat4(1.0f), pos);
         model = glm::rotate(model, glm::radians((float)glfwGetTime() * 120.0f + 20.0f * (float)i), glm::vec3(1.0f, 0.5f, 0.0f));
