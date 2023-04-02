@@ -16,7 +16,8 @@
 // 윈도우 사이즈가 변경되었을 때
 void OnFramebufferSizeChange(GLFWwindow* window, int width, int height) {
 	SPDLOG_INFO("framebuffer size changed: ({} x {})", width, height);
-	glViewport(0, 0, width, height);
+	auto context = reinterpret_cast<Context*>(glfwGetWindowUserPointer(window));
+	context->Reshape(width, height);
 }
 // 키보드가 입력되었을 때
 void OnKeyEvent(GLFWwindow* window, int key, int scancode, int action, int mods) {
@@ -31,6 +32,17 @@ void OnKeyEvent(GLFWwindow* window, int key, int scancode, int action, int mods)
 	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
 		glfwSetWindowShouldClose(window, true);
 	}
+}
+// 마우스가 입력되었을 때
+void OnCursorPos(GLFWwindow* window, double x, double y) {
+	auto context = reinterpret_cast<Context*>(glfwGetWindowUserPointer(window));
+	context->MouseMove(x, y);
+}
+void OnMouseButton(GLFWwindow* window, int button, int action, int modifier) {
+	auto context = reinterpret_cast<Context*>(glfwGetWindowUserPointer(window));
+	double x, y;
+	glfwGetCursorPos(window, &x, &y);
+	context->MouseButton(button, action, x, y);
 }
 
 int main(int argc, const char** argv){
@@ -76,6 +88,7 @@ int main(int argc, const char** argv){
 		glfwTerminate();
 		return -1;
 	}
+	glfwSetWindowUserPointer(window, context.get());
 
 	// 윈도우가 생성된 직후에는 해당 콜백함수가 자동으로 실행되지 않으므로 수동으로 실행
 	OnFramebufferSizeChange(window, WINDOW_WIDTH, WINDOW_HEIGHT);
@@ -83,6 +96,8 @@ int main(int argc, const char** argv){
 	// 콜백함수 등록
 	glfwSetFramebufferSizeCallback(window, OnFramebufferSizeChange);
 	glfwSetKeyCallback(window, OnKeyEvent);
+	glfwSetCursorPosCallback(window, OnCursorPos);
+	glfwSetMouseButtonCallback(window, OnMouseButton);
 
 	// glfw 루프 실행, 윈도우 close 버튼을 누르면 정상 종료
 	SPDLOG_INFO("Start main loop");
@@ -90,6 +105,7 @@ int main(int argc, const char** argv){
 		// loop에서 이벤트를 수집
 		// 이벤트가 발생했을 때 호출을 무엇을 할지 콜백 함수를 통해 정의
 		glfwPollEvents();
+		context->ProcessInput(window);
 		context->Render();
 		glfwSwapBuffers(window);
 	}
