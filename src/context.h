@@ -22,6 +22,7 @@ private:
     Context(){}
     bool Init();
     ProgramUPtr m_program;
+    ProgramUPtr m_simpleProgram;
 
     VertexLayoutUPtr m_vertexLayout; // VAO
     BufferUPtr m_vertexBuffer; // VBO
@@ -46,9 +47,8 @@ private:
 
     // material parameter
     struct Material {
-        glm::vec3 ambient { glm::vec3(1.0f, 0.5f, 0.3f) };
-        glm::vec3 diffuse { glm::vec3(1.0f, 0.5f, 0.3f) };
-        glm::vec3 specular { glm::vec3(0.5f, 0.5f, 0.5f) };
+        TextureUPtr diffuse;
+        TextureUPtr specular;
         float shininess { 32.0f };
     };
     Material m_material;
