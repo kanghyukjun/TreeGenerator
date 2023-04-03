@@ -4,8 +4,8 @@ set(PROJECT_NAME TreeGenerator)
 set(CMAKE_CXX_STANDARD 17)
 
 set(WINDOW_NAME "Tree Generator")
-set(WINDOW_WIDTH 960)
-set(WINDOW_HEIGHT 540)
+set(WINDOW_WIDTH 1200)
+set(WINDOW_HEIGHT 800)
 
 project(${PROJECT_NAME})
 add_executable(${PROJECT_NAME}
