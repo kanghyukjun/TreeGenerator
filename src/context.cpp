@@ -172,6 +172,9 @@ void Context::Render() {
         ImGui::Separator();
         if (ImGui::CollapsingHeader("light", ImGuiTreeNodeFlags_DefaultOpen)) {
             ImGui::DragFloat3("l.position", glm::value_ptr(m_light.position), 0.01f);
+            ImGui::DragFloat3("l.direction", glm::value_ptr(m_light.direction), 0.01f);
+            ImGui::DragFloat2("1.cutoff", glm::value_ptr(m_light.cutoff), 0.5f, 0.0f, 180.0f);
+            ImGui::DragFloat("1.distance", &m_light.distance, 0.5f, 0.0f, 3000.0f);
             ImGui::ColorEdit3("l.ambient", glm::value_ptr(m_light.ambient));
             ImGui::ColorEdit3("l.diffuse", glm::value_ptr(m_light.diffuse));
             ImGui::ColorEdit3("l.specular", glm::value_ptr(m_light.specular));
@@ -186,7 +189,38 @@ void Context::Render() {
         if(ImGui::Checkbox("aniamation",&m_animation));
     }
     ImGui::End();
-    
+    // const char* treeType[] = {"binary tree", "arrow weed", "fuzzy weed", "twiggy weed", "tall seaweed", "wavy seaweed"};
+    // const char* genType[] = {"context-free", "context-sensitive", "stochastic", "parametric"};
+    // static int tree_current = 0;
+    // static int gen_current = 0;
+    // static char axiom[128] = "X";
+    // static float angle = 10.0f;
+    // static float iterations = 3;
+    // static float length = 5.0f;
+    // if(ImGui::Begin("Tree parameter")){
+    //     ImGui::Combo("tree type", &tree_current, treeType, IM_ARRAYSIZE(treeType));
+    //     ImGui::Combo("generate type", &gen_current, genType, IM_ARRAYSIZE(genType));
+    //     ImGui::InputText("axiom", axiom, IM_ARRAYSIZE(axiom));
+    //     ImGui::Separator();
+    //     ImGui::DragFloat("angle", &angle, 0.1f, 10.0f, 85.0f);
+    //     ImGui::DragFloat("iterations", &iterations, 1.0f, 1.0f, 6.0f);
+    //     ImGui::DragFloat("length", &length, 0.1f, 1.0f, 10.0f);
+    //     ImGui::Separator();
+    //     if(ImGui::Button("draw"));
+    //     ImGui::Separator();
+    //     if(ImGui::CollapsingHeader("rules", ImGuiTreeNodeFlags_DefaultOpen)){
+    //         static ImGuiInputTextFlags flags = ImGuiInputTextFlags_AllowTabInput;
+    //         static char text[1024 * 4] = 
+    //             "\n"
+    //             "F -> FF\n\n"
+    //             "X -> F-[[X]+X]+F[+FX]-X\n\n"
+    //             "X -> F+[[X]-X]-F[-FX]+X";
+    //         ImGui::InputTextMultiline("##source", text, IM_ARRAYSIZE(text),
+    //         ImVec2(-FLT_MIN, ImGui::GetTextLineHeight() * 16), flags);
+    //     }
+    // }
+    // ImGui::End();
+
     std::vector<glm::vec3> cubePositions = {
         glm::vec3( 0.0f, 0.0f, 0.0f),
         glm::vec3( 2.0f, 5.0f, -15.0f),
@@ -208,24 +242,32 @@ void Context::Render() {
         glm::rotate(glm::mat4(1.0f), glm::radians(m_cameraPitch), glm::vec3(1.0f, 0.0f, 0.0f)) *
         glm::vec4(0.0f, 0.0f, -1.0f, 0.0f);
 
+    m_light.position = m_cameraPos;
+    m_light.direction = m_cameraFront;
+
     auto projection = glm::perspective(glm::radians(45.0f), (float)m_width / (float)m_height, 0.01f, 30.0f);
     auto view = glm::lookAt(
         m_cameraPos,
         m_cameraPos + m_cameraFront,
         m_cameraUp);
 
-    // light 렌더링
-    auto lightModelTransform = glm::translate(glm::mat4(1.0), m_light.position) *
-                                glm::scale(glm::mat4(1.0), glm::vec3(0.1f));
-    m_simpleProgram->Use();
-    m_simpleProgram->SetUniform("color", glm::vec4(m_light.ambient + m_light.diffuse, 1.0f));
-    m_simpleProgram->SetUniform("transform", projection * view * lightModelTransform);
-    glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+    // // light 렌더링
+    // auto lightModelTransform = glm::translate(glm::mat4(1.0), m_light.position) *
+    //                             glm::scale(glm::mat4(1.0), glm::vec3(0.1f));
+    // m_simpleProgram->Use();
+    // m_simpleProgram->SetUniform("color", glm::vec4(m_light.ambient + m_light.diffuse, 1.0f));
+    // m_simpleProgram->SetUniform("transform", projection * view * lightModelTransform);
+    // glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
     
     // cube 렌더링
     m_program->Use();
     m_program->SetUniform("viewPos", m_cameraPos);
     m_program->SetUniform("light.position", m_light.position);
+    m_program->SetUniform("light.direction", m_light.direction);
+    m_program->SetUniform("light.cutoff", glm::vec2(
+        cosf(glm::radians(m_light.cutoff[0])),
+        cosf(glm::radians(m_light.cutoff[0] + m_light.cutoff[1]))));
+    m_program->SetUniform("light.attenuation",GetAttenuationCoeff(m_light.distance));
     m_program->SetUniform("light.ambient", m_light.ambient);
     m_program->SetUniform("light.diffuse", m_light.diffuse);
     m_program->SetUniform("light.specular", m_light.specular);
