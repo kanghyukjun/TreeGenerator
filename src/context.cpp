@@ -69,57 +69,7 @@ void Context::MouseButton(int button, int action, double x, double y) {
 }
 
 bool Context::Init(){
-    float vertices[] = { // pos.xyz, normal.xyz, texcoord.uv
-        -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f,
-         0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 1.0f, 0.0f,
-         0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 1.0f, 1.0f,
-        -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 0.0f, 1.0f,
-
-        -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f, 0.0f, 0.0f,
-         0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f, 1.0f, 0.0f,
-         0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f, 1.0f, 1.0f,
-        -0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f, 0.0f, 1.0f,
-
-        -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f, 1.0f, 0.0f,
-        -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f, 1.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f, 0.0f, 1.0f,
-        -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f, 0.0f, 0.0f,
-
-        0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f, 1.0f, 0.0f,
-        0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f, 1.0f, 1.0f,
-        0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f, 0.0f, 1.0f,
-        0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f, 0.0f, 0.0f,
-
-        -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f, 0.0f, 1.0f,
-         0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f, 1.0f, 1.0f,
-         0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f, 1.0f, 0.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f, 0.0f, 0.0f,
-
-        -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f, 0.0f, 1.0f,
-         0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f, 1.0f, 1.0f,
-         0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f, 1.0f, 0.0f,
-        -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f, 0.0f, 0.0f,
-    };
-    
-    uint32_t indices[] = {
-        0,  2,  1,  2,  0,  3,
-        4,  5,  6,  6,  7,  4,
-        8,  9, 10, 10, 11,  8,
-        12, 14, 13, 14, 12, 15,
-        16, 17, 18, 18, 19, 16,
-        20, 22, 21, 22, 20, 23,
-    };
-
-    // VAO 생성
-    m_vertexLayout = VertexLayout::Create();
-    m_vertexBuffer = Buffer::CreateWithData(GL_ARRAY_BUFFER, GL_STATIC_DRAW, vertices, sizeof(float) * 8 * 6 * 4);
-
-    m_vertexLayout->SetAttrib(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 8, 0); // pos
-    m_vertexLayout->SetAttrib(1, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 8, sizeof(float) * 3); // normal
-    m_vertexLayout->SetAttrib(2, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 8, sizeof(float) * 6); // texture
-
-    // indices는 attribute array 생성할 필요 없음
-    m_indexBuffer = Buffer::CreateWithData(GL_ELEMENT_ARRAY_BUFFER, GL_STATIC_DRAW, indices, sizeof(uint32_t) * 36);
+    m_box = Mesh::CreateBox();
 
     m_simpleProgram = Program::Create("./shader/simple.vs", "./shader/simple.fs");
     if(!m_simpleProgram) return false;
@@ -242,8 +192,8 @@ void Context::Render() {
         glm::rotate(glm::mat4(1.0f), glm::radians(m_cameraPitch), glm::vec3(1.0f, 0.0f, 0.0f)) *
         glm::vec4(0.0f, 0.0f, -1.0f, 0.0f);
 
-    m_light.position = m_cameraPos;
-    m_light.direction = m_cameraFront;
+    // m_light.position = m_cameraPos;
+    // m_light.direction = m_cameraFront;
 
     auto projection = glm::perspective(glm::radians(45.0f), (float)m_width / (float)m_height, 0.01f, 30.0f);
     auto view = glm::lookAt(
@@ -251,13 +201,13 @@ void Context::Render() {
         m_cameraPos + m_cameraFront,
         m_cameraUp);
 
-    // // light 렌더링
-    // auto lightModelTransform = glm::translate(glm::mat4(1.0), m_light.position) *
-    //                             glm::scale(glm::mat4(1.0), glm::vec3(0.1f));
-    // m_simpleProgram->Use();
-    // m_simpleProgram->SetUniform("color", glm::vec4(m_light.ambient + m_light.diffuse, 1.0f));
-    // m_simpleProgram->SetUniform("transform", projection * view * lightModelTransform);
-    // glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+    // light 렌더링
+    auto lightModelTransform = glm::translate(glm::mat4(1.0), m_light.position) *
+                                glm::scale(glm::mat4(1.0), glm::vec3(0.1f));
+    m_simpleProgram->Use();
+    m_simpleProgram->SetUniform("color", glm::vec4(m_light.ambient + m_light.diffuse, 1.0f));
+    m_simpleProgram->SetUniform("transform", projection * view * lightModelTransform);
+    m_box->Draw();
     
     // cube 렌더링
     m_program->Use();
@@ -289,6 +239,6 @@ void Context::Render() {
         auto transform = projection * view * model;
         m_program->SetUniform("transform", transform);
         m_program->SetUniform("modelTransform", model);
-        glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+        m_box->Draw();
     }
 }
