@@ -34,6 +34,8 @@ void Context::Reshape(int width, int height) {
     m_width = width;
     m_height = height;
     glViewport(0, 0, m_width, m_height);
+
+    m_framebuffer = Framebuffer::Create(Texture::Create(width, height, GL_RGBA));
 }
 
 void Context::MouseMove(double x, double y) {
@@ -77,8 +79,11 @@ bool Context::Init(){
     m_program = Program::Create("./shader/lighting.vs", "./shader/lighting.fs");
     if(!m_program) return false;
 
-     m_textureProgram = Program::Create("./shader/texture.vs", "./shader/texture.fs");
+    m_textureProgram = Program::Create("./shader/texture.vs", "./shader/texture.fs");
     if (!m_textureProgram) return false;
+
+    m_postProgram = Program::Create("./shader/texture.vs", "./shader/gamma.fs");
+    if (!m_postProgram) return false;
 
     glClearColor(0.0f, 0.1f, 0.2f, 0.0f);
 
@@ -115,6 +120,7 @@ void Context::Render() {
         if(ImGui::ColorEdit4("clear color", glm::value_ptr(m_clearColor))){
             glClearColor(m_clearColor.x, m_clearColor.y, m_clearColor.z, m_clearColor.w);
         }
+        ImGui::DragFloat("gamma", &m_gamma, 0.01f, 0.0f, 2.0f);
         ImGui::Separator();
         ImGui::DragFloat3("camera pos", glm::value_ptr(m_cameraPos), 0.01f);
         ImGui::DragFloat("camera yaw",&m_cameraYaw, 0.05f);
@@ -170,6 +176,14 @@ void Context::Render() {
     //     }
     // }
     // ImGui::End();
+    
+    if(ImGui::Begin("view")){
+        float aspectRatio = (float)m_width / (float)m_height;
+        ImGui::Image((ImTextureID)m_framebuffer->GetColorAttachment()->Get(), ImVec2(150 * aspectRatio, 150));
+    }
+    ImGui::End();
+
+    m_framebuffer->Bind(); // 우리가 만든 프레임 버퍼에 그림이 그려짐
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
     glEnable(GL_DEPTH_TEST);
@@ -278,4 +292,16 @@ void Context::Render() {
     transform = projection * view * modelTransform;
     m_textureProgram->SetUniform("transform", transform);
     m_plane->Draw(m_textureProgram.get());
+
+    Framebuffer::BindToDefault(); // 그림이 그려질 대상을 변경, 실제 화면에다가 그림
+
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+
+    m_postProgram->Use();
+    m_postProgram->SetUniform("transform",
+        glm::scale(glm::mat4(1.0f), glm::vec3(2.0f, 2.0f, 1.0f)));
+    m_framebuffer->GetColorAttachment()->Bind();
+    m_postProgram->SetUniform("tex", 0);
+    m_postProgram->SetUniform("gamma", m_gamma);
+    m_plane->Draw(m_postProgram.get());  
 }
