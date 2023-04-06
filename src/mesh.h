@@ -36,6 +36,7 @@ public:
         const std::vector<uint32_t>& indices,uint32_t primitiveType);
 
     static MeshUPtr CreateBox();
+    static MeshUPtr CreatePlane();
     static MeshUPtr Createlinder();
 
     const VertexLayout* GetVertexLayout() const { return m_vertexLayout.get(); }
