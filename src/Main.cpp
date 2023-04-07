@@ -22,14 +22,14 @@ void OnFramebufferSizeChange(GLFWwindow* window, int width, int height) {
 // 키보드가 입력되었을 때
 void OnKeyEvent(GLFWwindow* window, int key, int scancode, int action, int mods) {
 	ImGui_ImplGlfw_KeyCallback(window, key, scancode, action, mods);
-	SPDLOG_INFO("key: {}, scancode: {}, action: {}, mods: {}{}{}",
-		key, scancode,
-		action == GLFW_PRESS ? "Pressed" :
-		action == GLFW_RELEASE ? "Released" :
-		action == GLFW_REPEAT ? "Repeat" : "Unknown",
-		mods & GLFW_MOD_CONTROL ? "C" : "-",
-		mods & GLFW_MOD_SHIFT ? "S" : "-",
-		mods & GLFW_MOD_ALT ? "A" : "-");
+	// SPDLOG_INFO("key: {}, scancode: {}, action: {}, mods: {}{}{}",
+	// 	key, scancode,
+	// 	action == GLFW_PRESS ? "Pressed" :
+	// 	action == GLFW_RELEASE ? "Released" :
+	// 	action == GLFW_REPEAT ? "Repeat" : "Unknown",
+	// 	mods & GLFW_MOD_CONTROL ? "C" : "-",
+	// 	mods & GLFW_MOD_SHIFT ? "S" : "-",
+	// 	mods & GLFW_MOD_ALT ? "A" : "-");
 	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
 		glfwSetWindowShouldClose(window, true);
 	}
@@ -71,6 +71,7 @@ int main(int argc, const char** argv){
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	// glfwWindowHint(GLFW_SAMPLES, 4); // sample을 4개 이용하는 multi sample frame-buffer 생성
 
 	// glfw 윈도우 생성, 성공하면 에러 출력후 종료
 	SPDLOG_INFO("Create glfw Window");
