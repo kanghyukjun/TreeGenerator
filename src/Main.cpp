@@ -71,7 +71,7 @@ int main(int argc, const char** argv){
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-	// glfwWindowHint(GLFW_SAMPLES, 4); // sample을 4개 이용하는 multi sample frame-buffer 생성
+	glfwWindowHint(GLFW_SAMPLES, 4); // sample을 4개 이용하는 multi sample frame-buffer 생성
 
 	// glfw 윈도우 생성, 성공하면 에러 출력후 종료
 	SPDLOG_INFO("Create glfw Window");
