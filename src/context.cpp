@@ -111,6 +111,26 @@ bool Context::Init(){
     m_plane = Mesh::CreatePlane();
     m_windowTexture = Texture::CreateFromImage(Image::Load("./image/blending_transparent_window.png").get());
 
+    auto cubeRight = Image::Load("./image/skybox/right.jpg", false);
+    auto cubeLeft = Image::Load("./image/skybox/left.jpg", false);
+    auto cubeTop = Image::Load("./image/skybox/top.jpg", false);
+    auto cubeBottom = Image::Load("./image/skybox/bottom.jpg", false);
+    auto cubeFront = Image::Load("./image/skybox/front.jpg", false);
+    auto cubeBack = Image::Load("./image/skybox/back.jpg", false);
+    m_cubeTexture = CubeTexture::CreateFromImages({
+        cubeRight.get(),
+        cubeLeft.get(),
+        cubeTop.get(),
+        cubeBottom.get(),
+        cubeFront.get(),
+        cubeBack.get(),
+    });
+    m_skyboxProgram = Program::Create("./shader/skybox.vs", "./shader/skybox.fs");
+    if(!m_skyboxProgram) return false;
+
+    m_envMapProgram = Program::Create("./shader/env_map.vs", "./shader/env_map.fs");
+    if(!m_envMapProgram) return false;
+
     return true;
 }
 
@@ -199,12 +219,20 @@ void Context::Render() {
     // m_light.direction = m_cameraFront;
 
     // perspective
-    auto projection = glm::perspective(glm::radians(45.0f), (float)m_width / (float)m_height, 0.1f, 30.0f);
+    auto projection = glm::perspective(glm::radians(45.0f), (float)m_width / (float)m_height, 0.1f, 100.0f);
     auto view = glm::lookAt(
         m_cameraPos,
         m_cameraPos + m_cameraFront,
         m_cameraUp);
     
+    auto skyboxModelTransform =
+        glm::translate(glm::mat4(1.0), m_cameraPos) * glm::scale(glm::mat4(1.0), glm::vec3(50.0f));
+    m_skyboxProgram->Use();
+    m_cubeTexture->Bind();
+    m_skyboxProgram->SetUniform("skybox", 0);
+    m_skyboxProgram->SetUniform("transform", projection * view * skyboxModelTransform);
+    m_box->Draw(m_skyboxProgram.get());
+
     glm::vec3 lightPos = m_light.position;
     glm::vec3 lightDir = m_light.direction;
     if(m_flashLightMode){
@@ -266,10 +294,23 @@ void Context::Render() {
     m_box2Material->SetToProgram(m_program.get());
     m_box->Draw(m_program.get());
 
+    modelTransform =
+        glm::translate(glm::mat4(1.0f), glm::vec3(1.0f, 0.75f, -2.0f)) *
+        glm::rotate(glm::mat4(1.0f), glm::radians(40.0f), glm::vec3(0.0f, 1.0f, 0.0f)) *
+        glm::scale(glm::mat4(1.0f), glm::vec3(1.5f, 1.5f, 1.5f));
+    m_envMapProgram->Use();
+    m_envMapProgram->SetUniform("model", modelTransform);
+    m_envMapProgram->SetUniform("view", view);
+    m_envMapProgram->SetUniform("projection", projection);
+    m_envMapProgram->SetUniform("cameraPos", m_cameraPos);
+    m_cubeTexture->Bind();
+    m_envMapProgram->SetUniform("skybox", 0);
+    m_box->Draw(m_envMapProgram.get());
+
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_BACK);
+    // glEnable(GL_CULL_FACE);
+    // glCullFace(GL_BACK);
 
     m_textureProgram->Use();
     m_windowTexture->Bind();
@@ -292,6 +333,7 @@ void Context::Render() {
     transform = projection * view * modelTransform;
     m_textureProgram->SetUniform("transform", transform);
     m_plane->Draw(m_textureProgram.get());
+
 
     Framebuffer::BindToDefault(); // 그림이 그려질 대상을 변경, 실제 화면에다가 그림
 
