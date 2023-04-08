@@ -136,7 +136,7 @@ bool Context::Init(){
     // grass
     m_grassTexture = Texture::CreateFromImage(Image::Load("./image/grass.png").get());
     m_grassProgram = Program::Create("./shader/grass.vs", "./shader/grass.fs");
-    m_grassPos.resize(10000);
+    m_grassPos.resize(5000);
     for (size_t i = 0; i < m_grassPos.size(); i++) {
         m_grassPos[i].x = ((float)rand() / (float)RAND_MAX * 2.0f - 1.0f) * 5.0f;
         m_grassPos[i].z = ((float)rand() / (float)RAND_MAX * 2.0f - 1.0f) * 5.0f;
@@ -158,6 +158,7 @@ bool Context::Init(){
     m_plane->GetIndexBuffer()->Bind();
 
     m_shadowMap = ShadowMap::Create(1024,1024);
+    m_lightingShadowProgram = Program::Create("./shader/lighting_shadow.vs", "./shader/lighting_shadow.fs");
 
     return true;
 }
@@ -181,6 +182,7 @@ void Context::Render() {
         }
         ImGui::Separator();
         if (ImGui::CollapsingHeader("light", ImGuiTreeNodeFlags_DefaultOpen)) {
+            ImGui::Checkbox("l.directional", &m_light.directional);
             ImGui::DragFloat3("l.position", glm::value_ptr(m_light.position), 0.01f);
             ImGui::DragFloat3("l.direction", glm::value_ptr(m_light.direction), 0.01f);
             ImGui::DragFloat2("1.cutoff", glm::value_ptr(m_light.cutoff), 0.5f, 0.0f, 180.0f);
@@ -188,10 +190,9 @@ void Context::Render() {
             ImGui::ColorEdit3("l.ambient", glm::value_ptr(m_light.ambient));
             ImGui::ColorEdit3("l.diffuse", glm::value_ptr(m_light.diffuse));
             ImGui::ColorEdit3("l.specular", glm::value_ptr(m_light.specular));
-            ImGui::Checkbox("flash light", &m_flashLightMode);
+            // ImGui::Checkbox("flash light", &m_flashLightMode);
             ImGui::Checkbox("1. blinn", &m_blinn);
         }
-        if(ImGui::Checkbox("aniamation",&m_animation));
     }
     ImGui::End();
     // const char* treeType[] = {"binary tree", "arrow weed", "fuzzy weed", "twiggy weed", "tall seaweed", "wavy seaweed"};
@@ -234,8 +235,10 @@ void Context::Render() {
 
     auto lightView = glm::lookAt(m_light.position,
         m_light.position + m_light.direction, glm::vec3(0.0f, 1.0f, 0.0f));
-    auto lightProjection = glm::perspective(
-        glm::radians((m_light.cutoff[0] + m_light.cutoff[1]) * 2.0f), 1.0f, 1.0f, 20.0f);
+    auto lightProjection = m_light.directional ?
+        glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 1.0f, 30.0f) :
+        glm::perspective(glm::radians((m_light.cutoff[0] + m_light.cutoff[1]) * 2.0f),
+        1.0f, 1.0f, 20.0f);
 
     m_shadowMap->Bind();
     glClear(GL_DEPTH_BUFFER_BIT);
@@ -285,54 +288,38 @@ void Context::Render() {
     }
     else{
         // light 렌더링
-        auto lightModelTransform = glm::translate(glm::mat4(1.0), m_light.position) *
+        if(!m_light.directional){
+            auto lightModelTransform = glm::translate(glm::mat4(1.0), m_light.position) *
                                     glm::scale(glm::mat4(1.0), glm::vec3(0.1f));
-        m_simpleProgram->Use();
-        m_simpleProgram->SetUniform("color", glm::vec4(m_light.ambient + m_light.diffuse, 1.0f));
-        m_simpleProgram->SetUniform("transform", projection * view * lightModelTransform);
-        m_box->Draw(m_simpleProgram.get());
+            m_simpleProgram->Use();
+            m_simpleProgram->SetUniform("color", glm::vec4(m_light.ambient + m_light.diffuse, 1.0f));
+            m_simpleProgram->SetUniform("transform", projection * view * lightModelTransform);
+            m_box->Draw(m_simpleProgram.get());
+        }
     }
 
     // 렌더링
     // camera & light
-    m_program->Use();
-    m_program->SetUniform("viewPos", m_cameraPos);
-    m_program->SetUniform("light.position", lightPos);
-    m_program->SetUniform("light.direction", lightDir);
-    m_program->SetUniform("light.cutoff", glm::vec2(
-        cosf(glm::radians(m_light.cutoff[0])), cosf(glm::radians(m_light.cutoff[0] + m_light.cutoff[1]))));
-    m_program->SetUniform("light.attenuation", GetAttenuationCoeff(m_light.distance));
-    m_program->SetUniform("light.ambient", m_light.ambient);
-    m_program->SetUniform("light.diffuse", m_light.diffuse);
-    m_program->SetUniform("light.specular", m_light.specular);
-    m_program->SetUniform("blinn", (m_blinn ? 1 : 0));
+    m_lightingShadowProgram->Use();
+    m_lightingShadowProgram->SetUniform("viewPos", m_cameraPos);
+    m_lightingShadowProgram->SetUniform("light.directional", (m_light.directional ? 1 : 0));
+    m_lightingShadowProgram->SetUniform("light.position", m_light.position);
+    m_lightingShadowProgram->SetUniform("light.direction", m_light.direction);
+    m_lightingShadowProgram->SetUniform("light.cutoff", glm::vec2(
+        cosf(glm::radians(m_light.cutoff[0])),
+        cosf(glm::radians(m_light.cutoff[0] + m_light.cutoff[1]))));
+    m_lightingShadowProgram->SetUniform("light.attenuation", GetAttenuationCoeff(m_light.distance));
+    m_lightingShadowProgram->SetUniform("light.ambient", m_light.ambient);
+    m_lightingShadowProgram->SetUniform("light.diffuse", m_light.diffuse);
+    m_lightingShadowProgram->SetUniform("light.specular", m_light.specular);
+    m_lightingShadowProgram->SetUniform("blinn", (m_blinn ? 1 : 0));
+    m_lightingShadowProgram->SetUniform("lightTransform", lightProjection * lightView);
+    glActiveTexture(GL_TEXTURE3);
+    m_shadowMap->GetShadowMap()->Bind();
+    m_lightingShadowProgram->SetUniform("shadowMap", 3);
+    glActiveTexture(GL_TEXTURE0);
 
-    DrawScene(view, projection, m_program.get());
-
-    // grass object instancing
-    // glEnable(GL_BLEND);
-    // glDisable(GL_CULL_FACE);
-    // m_grassProgram->Use();
-    // m_grassProgram->SetUniform("tex", 0);
-    // m_grassTexture->Bind();
-    // m_grassInstance->Bind();
-    // modelTransform = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.5f, 0.0f));
-    // transform = projection * view * modelTransform;
-    // m_grassProgram->SetUniform("transform", transform);
-    // glDrawElementsInstanced(GL_TRIANGLES, m_plane->GetIndexBuffer()->GetCount(),
-    //     GL_UNSIGNED_INT, 0,m_grassPosBuffer->GetCount());
-
-    // Framebuffer::BindToDefault(); // 그림이 그려질 대상을 변경, 실제 화면에다가 그림
-
-    // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-
-    // m_postProgram->Use();
-    // m_postProgram->SetUniform("transform",
-    //     glm::scale(glm::mat4(1.0f), glm::vec3(2.0f, 2.0f, 1.0f)));
-    // m_framebuffer->GetColorAttachment()->Bind();
-    // m_postProgram->SetUniform("tex", 0);
-    // m_postProgram->SetUniform("gamma", m_gamma);
-    // m_plane->Draw(m_postProgram.get());  
+    DrawScene(view, projection, m_lightingShadowProgram.get());
 }
 
 // context.cpp
@@ -380,4 +367,17 @@ void Context::DrawScene(const glm::mat4& view, const glm::mat4& projection, cons
     program->SetUniform("modelTransform", modelTransform);
     m_box2Material->SetToProgram(program);
     m_box->Draw(program);
+
+    // grass object instancing
+    // glEnable(GL_BLEND);
+    // glDisable(GL_CULL_FACE);
+    // m_grassProgram->Use();
+    // m_grassProgram->SetUniform("tex", 0);
+    // m_grassTexture->Bind();
+    // m_grassInstance->Bind();
+    // modelTransform = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.5f, 0.0f));
+    // transform = projection * view * modelTransform;
+    // m_grassProgram->SetUniform("transform", transform);
+    // glDrawElementsInstanced(GL_TRIANGLES, m_plane->GetIndexBuffer()->GetCount(),
+    //     GL_UNSIGNED_INT, 0,m_grassPosBuffer->GetCount());
 }
