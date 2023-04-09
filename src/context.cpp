@@ -143,22 +143,26 @@ bool Context::Init(){
         m_grassPos[i].y = glm::radians((float)rand() / (float)RAND_MAX * 360.0f);
     }
 
-    m_grassInstance = VertexLayout::Create();
-    m_grassInstance->Bind();
-    m_plane->GetVertexBuffer()->Bind();
-    m_grassInstance->SetAttrib(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
-    m_grassInstance->SetAttrib(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex),offsetof(Vertex, normal));
-    m_grassInstance->SetAttrib(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex),offsetof(Vertex, texCoord));
+    // m_grassInstance = VertexLayout::Create();
+    // m_grassInstance->Bind();
+    // m_plane->GetVertexBuffer()->Bind();
+    // m_grassInstance->SetAttrib(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
+    // m_grassInstance->SetAttrib(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex),offsetof(Vertex, normal));
+    // m_grassInstance->SetAttrib(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex),offsetof(Vertex, texCoord));
     
-    m_grassPosBuffer = Buffer::CreateWithData(GL_ARRAY_BUFFER, GL_STATIC_DRAW,
-        m_grassPos.data(), sizeof(glm::vec3), m_grassPos.size());
-    m_grassPosBuffer->Bind();
-    m_grassInstance->SetAttrib(3, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), 0);
-    glVertexAttribDivisor(3, 1);
-    m_plane->GetIndexBuffer()->Bind();
+    // m_grassPosBuffer = Buffer::CreateWithData(GL_ARRAY_BUFFER, GL_STATIC_DRAW,
+    //     m_grassPos.data(), sizeof(glm::vec3), m_grassPos.size());
+    // m_grassPosBuffer->Bind();
+    // m_grassInstance->SetAttrib(3, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), 0);
+    // glVertexAttribDivisor(3, 1);
+    // m_plane->GetIndexBuffer()->Bind();
 
     m_shadowMap = ShadowMap::Create(1024,1024);
     m_lightingShadowProgram = Program::Create("./shader/lighting_shadow.vs", "./shader/lighting_shadow.fs");
+
+    m_brickDiffuseTexture = Texture::CreateFromImage(Image::Load("./image/brickwall.jpg", false).get());
+    m_brickNormalTexture = Texture::CreateFromImage(Image::Load("./image/brickwall_normal.jpg", false).get());
+    m_normalProgram = Program::Create("./shader/normal.vs", "./shader/normal.fs");
 
     return true;
 }
@@ -262,9 +266,6 @@ void Context::Render() {
         glm::rotate(glm::mat4(1.0f), glm::radians(m_cameraPitch), glm::vec3(1.0f, 0.0f, 0.0f)) *
         glm::vec4(0.0f, 0.0f, -1.0f, 0.0f);
 
-    // m_light.position = m_cameraPos;
-    // m_light.direction = m_cameraFront;
-
     // perspective
     auto projection = glm::perspective(glm::radians(45.0f), (float)m_width / (float)m_height, 0.1f, 100.0f);
     auto view = glm::lookAt(
@@ -320,6 +321,23 @@ void Context::Render() {
     glActiveTexture(GL_TEXTURE0);
 
     DrawScene(view, projection, m_lightingShadowProgram.get());
+
+    auto modelTransform =
+        glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 3.0f, 0.0f)) * 
+        glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    m_normalProgram->Use();
+    m_normalProgram->SetUniform("viewPos", m_cameraPos);
+    m_normalProgram->SetUniform("lightPos", m_light.position);
+    glActiveTexture(GL_TEXTURE0);
+    m_brickDiffuseTexture->Bind();
+    m_normalProgram->SetUniform("diffuse", 0);
+    glActiveTexture(GL_TEXTURE1);
+    m_brickNormalTexture->Bind();
+    m_normalProgram->SetUniform("normalMap", 1);
+    glActiveTexture(GL_TEXTURE0);
+    m_normalProgram->SetUniform("modelTransform", modelTransform);
+    m_normalProgram->SetUniform("transform", projection * view * modelTransform);
+    m_plane->Draw(m_normalProgram.get());
 }
 
 // context.cpp
