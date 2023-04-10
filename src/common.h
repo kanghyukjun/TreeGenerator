@@ -21,5 +21,6 @@ using klassName ## WPtr = std::weak_ptr<klassName>;
 // optinal -> 파일을 읽지 못하는 경우를 포인터 없이 편리하게 사용 가능
 std::optional<std::string> LoadTextFile(const std::string& filename);
 glm::vec3 GetAttenuationCoeff(float distance);
+float RandomRange(float minValue = 0.0f, float maxValue = 1.0f);
 
 #endif // __COMMON_H__
