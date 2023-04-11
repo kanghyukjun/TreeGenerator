@@ -30,14 +30,6 @@ void Context::ProcessInput(GLFWwindow* window) {
         m_cameraPos -= cameraSpeed * cameraUp;
 }
 
-void Context::Reshape(int width, int height) {
-    m_width = width;
-    m_height = height;
-    glViewport(0, 0, m_width, m_height);
-
-    m_framebuffer = Framebuffer::Create(Texture::Create(width, height, GL_RGBA));
-}
-
 void Context::MouseMove(double x, double y) {
     if(!m_cameraControl) return;
 
@@ -68,6 +60,14 @@ void Context::MouseButton(int button, int action, double x, double y) {
             m_cameraControl = false;
         }
     }
+}
+
+void Context::Reshape(int width, int height) {
+    m_width = width;
+    m_height = height;
+    glViewport(0, 0, m_width, m_height);
+
+    m_framebuffer = Framebuffer::Create(Texture::Create(width, height, GL_RGBA));
 }
 
 bool Context::Init(){
@@ -137,28 +137,28 @@ bool Context::Init(){
     if(!m_envMapProgram) return false;
 
     // grass
-    m_grassTexture = Texture::CreateFromImage(Image::Load("./image/grass.png").get());
-    m_grassProgram = Program::Create("./shader/grass.vs", "./shader/grass.fs");
-    m_grassPos.resize(10000);
-    for (size_t i = 0; i < m_grassPos.size(); i++) {
-        m_grassPos[i].x = ((float)rand() / (float)RAND_MAX * 2.0f - 1.0f) * 5.0f;
-        m_grassPos[i].z = ((float)rand() / (float)RAND_MAX * 2.0f - 1.0f) * 5.0f;
-        m_grassPos[i].y = glm::radians((float)rand() / (float)RAND_MAX * 360.0f);
-    }
+    // m_grassTexture = Texture::CreateFromImage(Image::Load("./image/grass.png").get());
+    // m_grassProgram = Program::Create("./shader/grass.vs", "./shader/grass.fs");
+    // m_grassPos.resize(10000);
+    // for (size_t i = 0; i < m_grassPos.size(); i++) {
+    //     m_grassPos[i].x = ((float)rand() / (float)RAND_MAX * 2.0f - 1.0f) * 5.0f;
+    //     m_grassPos[i].z = ((float)rand() / (float)RAND_MAX * 2.0f - 1.0f) * 5.0f;
+    //     m_grassPos[i].y = glm::radians((float)rand() / (float)RAND_MAX * 360.0f);
+    // }
 
-    m_grassInstance = VertexLayout::Create();
-    m_grassInstance->Bind();
-    m_plane->GetVertexBuffer()->Bind();
-    m_grassInstance->SetAttrib(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
-    m_grassInstance->SetAttrib(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex),offsetof(Vertex, normal));
-    m_grassInstance->SetAttrib(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex),offsetof(Vertex, texCoord));
+    // m_grassInstance = VertexLayout::Create();
+    // m_grassInstance->Bind();
+    // m_plane->GetVertexBuffer()->Bind();
+    // m_grassInstance->SetAttrib(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
+    // m_grassInstance->SetAttrib(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex),offsetof(Vertex, normal));
+    // m_grassInstance->SetAttrib(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex),offsetof(Vertex, texCoord));
     
-    m_grassPosBuffer = Buffer::CreateWithData(GL_ARRAY_BUFFER, GL_STATIC_DRAW,
-        m_grassPos.data(), sizeof(glm::vec3), m_grassPos.size());
-    m_grassPosBuffer->Bind();
-    m_grassInstance->SetAttrib(3, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), 0);
-    glVertexAttribDivisor(3, 1);
-    m_plane->GetIndexBuffer()->Bind();
+    // m_grassPosBuffer = Buffer::CreateWithData(GL_ARRAY_BUFFER, GL_STATIC_DRAW,
+    //     m_grassPos.data(), sizeof(glm::vec3), m_grassPos.size());
+    // m_grassPosBuffer->Bind();
+    // m_grassInstance->SetAttrib(3, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), 0);
+    // glVertexAttribDivisor(3, 1);
+    // m_plane->GetIndexBuffer()->Bind();
 
     m_shadowMap = ShadowMap::Create(1024,1024);
 
@@ -171,16 +171,16 @@ void Context::Render() {
         if(ImGui::ColorEdit4("clear color", glm::value_ptr(m_clearColor))){
             glClearColor(m_clearColor.x, m_clearColor.y, m_clearColor.z, m_clearColor.w);
         }
-        ImGui::DragFloat("gamma", &m_gamma, 0.01f, 0.0f, 2.0f);
+        // ImGui::DragFloat("gamma", &m_gamma, 0.01f, 0.0f, 2.0f);
         ImGui::Separator();
         ImGui::DragFloat3("camera pos", glm::value_ptr(m_cameraPos), 0.01f);
         ImGui::DragFloat("camera yaw",&m_cameraYaw, 0.05f);
         ImGui::DragFloat("camera pitch",&m_cameraPitch, 0.05f, -89.0f, 89.0f);
         ImGui::Separator();
         if(ImGui::Button("reset camera")){
-            m_cameraYaw = 0.0f;
-            m_cameraPitch = 0.0f;
-            m_cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
+            m_cameraPitch = -38.0f;
+            m_cameraYaw = 334.0f;
+            m_cameraPos = glm::vec3(-7.0f, 13.0f, 15.0f);
         }
         ImGui::Separator();
         if (ImGui::CollapsingHeader("light", ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -192,7 +192,6 @@ void Context::Render() {
             ImGui::ColorEdit3("l.ambient", glm::value_ptr(m_light.ambient));
             ImGui::ColorEdit3("l.diffuse", glm::value_ptr(m_light.diffuse));
             ImGui::ColorEdit3("l.specular", glm::value_ptr(m_light.specular));
-            ImGui::Checkbox("flash light", &m_flashLightMode);
             ImGui::Checkbox("1. blinn", &m_blinn);
         }
     }
@@ -243,6 +242,7 @@ void Context::Render() {
             glm::radians((m_light.cutoff[0] + m_light.cutoff[1]) * 2.0f),
             1.0f, 1.0f, 20.0f);
 
+    // shadowMap을 만들기 위해 shadowMap에 빛의 시점에서의 장면 그리기
     m_shadowMap->Bind();
     glClear(GL_DEPTH_BUFFER_BIT);
     glViewport(0, 0,
@@ -252,13 +252,17 @@ void Context::Render() {
     m_simpleProgram->SetUniform("color", glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
     DrawScene(lightView, lightProjection, m_simpleProgram.get()); // 빛의 위치에서 depth 값을 렌더링
 
-    Framebuffer::BindToDefault();
+    Framebuffer::BindToDefault(); // 렌더링 종료, 원래 프로그램으로 복귀
     glViewport(0, 0, m_width, m_height);
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
     glEnable(GL_DEPTH_TEST);
     glClearDepth(1.0f);
     glDepthFunc(GL_LESS);
+
+
+    // framebuffer에 장면 그리기
+    // m_framebuffer->Bind();
 
     m_cameraFront =
         glm::rotate(glm::mat4(1.0f), glm::radians(m_cameraYaw), glm::vec3(0.0f, 1.0f, 0.0f)) *
@@ -282,20 +286,15 @@ void Context::Render() {
 
     glm::vec3 lightPos = m_light.position;
     glm::vec3 lightDir = m_light.direction;
-    if(m_flashLightMode){
-        lightPos = m_cameraPos;
-        lightDir = m_cameraFront;
-    }
-    else{
-        // light 렌더링
-        if(!m_light.directional){
-            auto lightModelTransform = glm::translate(glm::mat4(1.0), m_light.position) *
-                glm::scale(glm::mat4(1.0), glm::vec3(0.1f));
-            m_simpleProgram->Use();
-            m_simpleProgram->SetUniform("color", glm::vec4(m_light.ambient + m_light.diffuse, 1.0f));
-            m_simpleProgram->SetUniform("transform", projection * view * lightModelTransform);
-            m_box->Draw(m_simpleProgram.get());
-        }
+
+    // light 렌더링
+    if(!m_light.directional){
+        auto lightModelTransform = glm::translate(glm::mat4(1.0), m_light.position) *
+            glm::scale(glm::mat4(1.0), glm::vec3(0.1f));
+        m_simpleProgram->Use();
+        m_simpleProgram->SetUniform("color", glm::vec4(m_light.ambient + m_light.diffuse, 1.0f));
+        m_simpleProgram->SetUniform("transform", projection * view * lightModelTransform);
+        m_box->Draw(m_simpleProgram.get());
     }
 
     // 렌더링
@@ -321,7 +320,7 @@ void Context::Render() {
 
     DrawScene(view, projection, m_lightingShadowProgram.get());
 
-    // Framebuffer::BindToDefault(); // 그림이 그려질 대상을 변경, 실제 화면에다가 그림
+    // Framebuffer::BindToDefault(); // 실제 화면에다가 그림 그리기
 
     // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
