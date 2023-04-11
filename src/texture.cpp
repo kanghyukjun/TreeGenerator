@@ -35,10 +35,6 @@ void Texture::SetWrap(uint32_t sWrap, uint32_t tWrap) const {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, tWrap);
 }
 
-void Texture::SetBorderColor(const glm::vec4& color) const {
-    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, glm::value_ptr(color));
-}
-
 // 이미지 데이터는 복사하지 않고 메모리만 할당
 void Texture::SetTextureFormat(int width, int height, uint32_t format, uint32_t type) {
     m_width = width;
