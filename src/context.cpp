@@ -454,12 +454,12 @@ void Context::Render() {
     }
     else{
         // light 렌더링
-        auto lightModelTransform = glm::translate(glm::mat4(1.0), m_light.position) *
-                                    glm::scale(glm::mat4(1.0), glm::vec3(0.1f));
-        m_simpleProgram->Use();
-        m_simpleProgram->SetUniform("color", glm::vec4(m_light.ambient + m_light.diffuse, 1.0f));
-        m_simpleProgram->SetUniform("transform", projection * view * lightModelTransform);
-        m_box->Draw(m_simpleProgram.get());
+        // auto lightModelTransform = glm::translate(glm::mat4(1.0), m_light.position) *
+        //                             glm::scale(glm::mat4(1.0), glm::vec3(0.1f));
+        // m_simpleProgram->Use();
+        // m_simpleProgram->SetUniform("color", glm::vec4(m_light.ambient + m_light.diffuse, 1.0f));
+        // m_simpleProgram->SetUniform("transform", projection * view * lightModelTransform);
+        // m_box->Draw(m_simpleProgram.get());
     }
 
     // 렌더링
