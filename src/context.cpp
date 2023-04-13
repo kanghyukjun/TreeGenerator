@@ -301,41 +301,43 @@ void Context::Render() {
 void Context::DrawTree(const glm::mat4& projection, const glm::mat4& view, const Program* program) {
     MatrixStack stack;
     stack.pushMatrix(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 1.0f, 0.0f)));
-    float angle = 30.0f;
+
+    const float angle = 15.0f;
+    glm::mat4 rotateRight = 
+        glm::rotate(glm::mat4(1.0f), glm::radians(angle), glm::vec3(1.0f, 0.0f, 0.0f)) * 
+        glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 1.0f * sin(angle * M_PI / 180.0f) * (m_cylinderHeight/2.0f)));
+    glm::mat4 rotateLeft = 
+        glm::rotate(glm::mat4(1.0f), glm::radians(-1.0f * angle), glm::vec3(1.0f, 0.0f, 0.0f)) *
+        glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -1.0f * sin(angle * M_PI / 180.0f) * (m_cylinderHeight/2.0f)));
+    glm::mat4 translateFront = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 1.8f, 0.0f));
 
     Context::DrawCylinder(projection, view, stack.getCurrentMatrix(), program);
-    stack.pushMatrix(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 1.8f, 0.0f)));
+    stack.pushMatrix(translateFront);
     
-    stack.pushMatrix(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -0.5f * sin(angle) * (m_cylinderHeight/2.0f)))
-        * glm::rotate(glm::mat4(1.0f), glm::radians(angle), glm::vec3(1.0f, 0.0f, 0.0f)));
+    stack.pushMatrix(rotateRight);
     Context::DrawCylinder(projection, view, stack.getCurrentMatrix(), program);
-    stack.pushMatrix(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 1.8f, 0.0f)));
+    stack.pushMatrix(translateFront);
 
-    stack.pushMatrix(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -0.5f * sin(angle) * (m_cylinderHeight/2.0f)))
-        * glm::rotate(glm::mat4(1.0f), glm::radians(angle), glm::vec3(1.0f, 0.0f, 0.0f)));
+    stack.pushMatrix(rotateRight);
     Context::DrawCylinder(projection, view, stack.getCurrentMatrix(), program);
 
     stack.popMatrix();
-    stack.pushMatrix(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.5f * sin(angle) * (m_cylinderHeight/2.0f)))
-        * glm::rotate(glm::mat4(1.0f), glm::radians(-1.0f * angle), glm::vec3(1.0f, 0.0f, 0.0f)));
+    stack.pushMatrix(rotateLeft);
     Context::DrawCylinder(projection, view, stack.getCurrentMatrix(), program);
 
     stack.popMatrix();
     stack.popMatrix();
     stack.popMatrix();
 
-    stack.pushMatrix(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.5f * sin(angle) * (m_cylinderHeight/2.0f)))
-        * glm::rotate(glm::mat4(1.0f), glm::radians(-1.0f * angle), glm::vec3(1.0f, 0.0f, 0.0f)));
+    stack.pushMatrix(rotateLeft);
     Context::DrawCylinder(projection, view, stack.getCurrentMatrix(), program);
-    stack.pushMatrix(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 1.8f, 0.0f)));
+    stack.pushMatrix(translateFront);
 
-    stack.pushMatrix(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -0.5f * sin(angle) * (m_cylinderHeight/2.0f)))
-        * glm::rotate(glm::mat4(1.0f), glm::radians(angle), glm::vec3(1.0f, 0.0f, 0.0f)));
+    stack.pushMatrix(rotateRight);
     Context::DrawCylinder(projection, view, stack.getCurrentMatrix(), program);
 
     stack.popMatrix();
-    stack.pushMatrix(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.5f * sin(angle) * (m_cylinderHeight/2.0f)))
-        * glm::rotate(glm::mat4(1.0f), glm::radians(-1.0f * angle), glm::vec3(1.0f, 0.0f, 0.0f)));
+    stack.pushMatrix(rotateLeft);
     Context::DrawCylinder(projection, view, stack.getCurrentMatrix(), program);
 }
 

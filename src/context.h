@@ -12,7 +12,8 @@
 #include "framebuffer.h"
 #include "shadow_map.h"
 #include "matrix_stack.h"
-#include <cmath>
+#define _USE_MATH_DEFINES
+#include <math.h>
 
 CLASS_PTR(Context)
 class Context{
