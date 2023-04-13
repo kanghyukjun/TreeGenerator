@@ -12,6 +12,7 @@
 #include "framebuffer.h"
 #include "shadow_map.h"
 #include "matrix_stack.h"
+#include <cmath>
 
 CLASS_PTR(Context)
 class Context{
@@ -89,6 +90,10 @@ private:
     // shadow map
     ShadowMapUPtr m_shadowMap;
     ProgramUPtr m_lightingShadowProgram;
+
+    // cylinder length;
+    float m_cylinderRadius { 0.15f };
+    float m_cylinderHeight { 2.0f };
 
     int m_width { WINDOW_WIDTH };
     int m_height { WINDOW_HEIGHT };

@@ -73,7 +73,7 @@ void Context::Reshape(int width, int height) {
 bool Context::Init(){
     glEnable(GL_MULTISAMPLE);
     m_box = Mesh::CreateBox();
-    m_cylinder = Mesh::CreateCylinder(0.15f, 2.0f);
+    m_cylinder = Mesh::CreateCylinder(m_cylinderRadius, m_cylinderHeight);
 
     m_simpleProgram = Program::Create("./shader/simple.vs", "./shader/simple.fs");
     if(!m_simpleProgram) return false;
@@ -227,6 +227,7 @@ void Context::Render() {
         m_shadowMap->GetShadowMap()->GetHeight());
     m_simpleProgram->Use();
     m_simpleProgram->SetUniform("color", glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+
     DrawScene(lightProjection, lightView, m_simpleProgram.get()); // 빛의 위치에서 depth 값을 렌더링
     DrawTree(lightProjection, lightView, m_simpleProgram.get());
 
@@ -293,13 +294,49 @@ void Context::Render() {
     glActiveTexture(GL_TEXTURE0);
 
     DrawScene(projection, view, m_lightingShadowProgram.get());
-
-    // cylinder 렌더링
     DrawTree(projection, view, m_simpleProgram.get());
 }
 
+// 회전 후 이동 -> 이동행렬 * 회전행렬 (순서)
 void Context::DrawTree(const glm::mat4& projection, const glm::mat4& view, const Program* program) {
-    Context::DrawCylinder(projection, view, glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 2.0f, 0.0f)), program);
+    MatrixStack stack;
+    stack.pushMatrix(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 1.0f, 0.0f)));
+    float angle = 30.0f;
+
+    Context::DrawCylinder(projection, view, stack.getCurrentMatrix(), program);
+    stack.pushMatrix(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 1.8f, 0.0f)));
+    
+    stack.pushMatrix(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -0.5f * sin(angle) * (m_cylinderHeight/2.0f)))
+        * glm::rotate(glm::mat4(1.0f), glm::radians(angle), glm::vec3(1.0f, 0.0f, 0.0f)));
+    Context::DrawCylinder(projection, view, stack.getCurrentMatrix(), program);
+    stack.pushMatrix(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 1.8f, 0.0f)));
+
+    stack.pushMatrix(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -0.5f * sin(angle) * (m_cylinderHeight/2.0f)))
+        * glm::rotate(glm::mat4(1.0f), glm::radians(angle), glm::vec3(1.0f, 0.0f, 0.0f)));
+    Context::DrawCylinder(projection, view, stack.getCurrentMatrix(), program);
+
+    stack.popMatrix();
+    stack.pushMatrix(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.5f * sin(angle) * (m_cylinderHeight/2.0f)))
+        * glm::rotate(glm::mat4(1.0f), glm::radians(-1.0f * angle), glm::vec3(1.0f, 0.0f, 0.0f)));
+    Context::DrawCylinder(projection, view, stack.getCurrentMatrix(), program);
+
+    stack.popMatrix();
+    stack.popMatrix();
+    stack.popMatrix();
+
+    stack.pushMatrix(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.5f * sin(angle) * (m_cylinderHeight/2.0f)))
+        * glm::rotate(glm::mat4(1.0f), glm::radians(-1.0f * angle), glm::vec3(1.0f, 0.0f, 0.0f)));
+    Context::DrawCylinder(projection, view, stack.getCurrentMatrix(), program);
+    stack.pushMatrix(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 1.8f, 0.0f)));
+
+    stack.pushMatrix(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -0.5f * sin(angle) * (m_cylinderHeight/2.0f)))
+        * glm::rotate(glm::mat4(1.0f), glm::radians(angle), glm::vec3(1.0f, 0.0f, 0.0f)));
+    Context::DrawCylinder(projection, view, stack.getCurrentMatrix(), program);
+
+    stack.popMatrix();
+    stack.pushMatrix(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.5f * sin(angle) * (m_cylinderHeight/2.0f)))
+        * glm::rotate(glm::mat4(1.0f), glm::radians(-1.0f * angle), glm::vec3(1.0f, 0.0f, 0.0f)));
+    Context::DrawCylinder(projection, view, stack.getCurrentMatrix(), program);
 }
 
 void Context::DrawCylinder(const glm::mat4& projection, const glm::mat4 view, const glm::mat4 modelTransform, const Program* program) {
