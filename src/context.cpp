@@ -73,6 +73,7 @@ void Context::Reshape(int width, int height) {
 bool Context::Init(){
     glEnable(GL_MULTISAMPLE);
     m_box = Mesh::CreateBox();
+    m_cylinder = Mesh::CreateCylinder();
 
     m_simpleProgram = Program::Create("./shader/simple.vs", "./shader/simple.fs");
     if(!m_simpleProgram) return false;
@@ -136,31 +137,16 @@ bool Context::Init(){
     m_envMapProgram = Program::Create("./shader/env_map.vs", "./shader/env_map.fs");
     if(!m_envMapProgram) return false;
 
-    // grass
-    // m_grassTexture = Texture::CreateFromImage(Image::Load("./image/grass.png").get());
-    // m_grassProgram = Program::Create("./shader/grass.vs", "./shader/grass.fs");
-    // m_grassPos.resize(10000);
-    // for (size_t i = 0; i < m_grassPos.size(); i++) {
-    //     m_grassPos[i].x = ((float)rand() / (float)RAND_MAX * 2.0f - 1.0f) * 5.0f;
-    //     m_grassPos[i].z = ((float)rand() / (float)RAND_MAX * 2.0f - 1.0f) * 5.0f;
-    //     m_grassPos[i].y = glm::radians((float)rand() / (float)RAND_MAX * 360.0f);
-    // }
-
-    // m_grassInstance = VertexLayout::Create();
-    // m_grassInstance->Bind();
-    // m_plane->GetVertexBuffer()->Bind();
-    // m_grassInstance->SetAttrib(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
-    // m_grassInstance->SetAttrib(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex),offsetof(Vertex, normal));
-    // m_grassInstance->SetAttrib(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex),offsetof(Vertex, texCoord));
-    
-    // m_grassPosBuffer = Buffer::CreateWithData(GL_ARRAY_BUFFER, GL_STATIC_DRAW,
-    //     m_grassPos.data(), sizeof(glm::vec3), m_grassPos.size());
-    // m_grassPosBuffer->Bind();
-    // m_grassInstance->SetAttrib(3, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), 0);
-    // glVertexAttribDivisor(3, 1);
-    // m_plane->GetIndexBuffer()->Bind();
-
     m_shadowMap = ShadowMap::Create(1024,1024);
+
+    // matrix stack 구현
+    cylinderModelTransform = glm::translate(glm::mat4(1.0), glm::vec3(0.0f, 0.3f, 0.0f));
+    m_matrixStack.pushMatrix(cylinderModelTransform);
+    m_matrixStack.pushMatrix(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 4.0f, 0.0f)));
+    m_matrixStack.pushMatrix(glm::rotate(glm::mat4(1.0f), glm::radians(30.0f), glm::vec3(1.0f, 0.0f, 0.0f)));
+
+    m_matrixStack.popMatrix();
+    m_matrixStack.pushMatrix(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 5.0f, 0.0f)));
 
     return true;
 }
@@ -261,9 +247,6 @@ void Context::Render() {
     glDepthFunc(GL_LESS);
 
 
-    // framebuffer에 장면 그리기
-    // m_framebuffer->Bind();
-
     m_cameraFront =
         glm::rotate(glm::mat4(1.0f), glm::radians(m_cameraYaw), glm::vec3(0.0f, 1.0f, 0.0f)) *
         glm::rotate(glm::mat4(1.0f), glm::radians(m_cameraPitch), glm::vec3(1.0f, 0.0f, 0.0f)) *
@@ -297,7 +280,6 @@ void Context::Render() {
         m_box->Draw(m_simpleProgram.get());
     }
 
-    // 렌더링
     // camera & light
     m_lightingShadowProgram->Use();
     m_lightingShadowProgram->SetUniform("viewPos", m_cameraPos);
@@ -320,17 +302,12 @@ void Context::Render() {
 
     DrawScene(view, projection, m_lightingShadowProgram.get());
 
-    // Framebuffer::BindToDefault(); // 실제 화면에다가 그림 그리기
+    // cylinder 렌더링
+    m_simpleProgram->Use();
+    m_simpleProgram->SetUniform("transform", projection * view * m_matrixStack.getCurrentMatrix());
+    m_simpleProgram->SetUniform("color", glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
+    m_box->Draw(m_simpleProgram.get());
 
-    // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-
-    // m_postProgram->Use();
-    // m_postProgram->SetUniform("transform",
-    //     glm::scale(glm::mat4(1.0f), glm::vec3(2.0f, 2.0f, 1.0f)));
-    // m_framebuffer->GetColorAttachment()->Bind();
-    // m_postProgram->SetUniform("tex", 0);
-    // m_postProgram->SetUniform("gamma", m_gamma);
-    // m_plane->Draw(m_postProgram.get());  
 }
 
 // context.cpp
@@ -346,49 +323,14 @@ void Context::DrawScene(const glm::mat4& view, const glm::mat4& projection, cons
     m_planeMaterial->SetToProgram(program);
     m_box->Draw(program);
 
-    // 박스 1
-    modelTransform =
-        glm::translate(glm::mat4(1.0f), glm::vec3(-1.0f, 0.75f, -4.0f)) *
-        glm::rotate(glm::mat4(1.0f), glm::radians(30.0f), glm::vec3(0.0f, 1.0f, 0.0f)) *
-        glm::scale(glm::mat4(1.0f), glm::vec3(1.5f, 1.5f, 1.5f));
-    transform = projection * view * modelTransform;
-    program->SetUniform("transform", transform);
-    program->SetUniform("modelTransform", modelTransform);
-    m_box1Material->SetToProgram(program);
-    m_box->Draw(program);
-
-    // 박스 2
-    modelTransform =
-        glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.75f, 2.0f)) *
-        glm::rotate(glm::mat4(1.0f), glm::radians(20.0f), glm::vec3(0.0f, 1.0f, 0.0f)) *
-        glm::scale(glm::mat4(1.0f), glm::vec3(1.5f, 1.5f, 1.5f));
-    transform = projection * view * modelTransform;
-    program->SetUniform("transform", transform);
-    program->SetUniform("modelTransform", modelTransform);
-    m_box2Material->SetToProgram(program);
-    m_box->Draw(program);
-
-    // 박스 3
-    modelTransform =
-        glm::translate(glm::mat4(1.0f), glm::vec3(3.0f, 1.75f, -2.0f)) *
-        glm::rotate(glm::mat4(1.0f), glm::radians(50.0f), glm::vec3(0.0f, 1.0f, 0.0f)) *
-        glm::scale(glm::mat4(1.0f), glm::vec3(1.5f, 1.5f, 1.5f));
-    transform = projection * view * modelTransform;
-    program->SetUniform("transform", transform);
-    program->SetUniform("modelTransform", modelTransform);
-    m_box2Material->SetToProgram(program);
-    m_box->Draw(program);
-
-    // grass object instancing
-    // glEnable(GL_BLEND);
-    // glDisable(GL_CULL_FACE);
-    // m_grassProgram->Use();
-    // m_grassProgram->SetUniform("tex", 0);
-    // m_grassTexture->Bind();
-    // m_grassInstance->Bind();
-    // modelTransform = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.5f, 0.0f));
+    // // 박스 1
+    // modelTransform =
+    //     glm::translate(glm::mat4(1.0f), glm::vec3(-1.0f, 0.75f, -4.0f)) *
+    //     glm::rotate(glm::mat4(1.0f), glm::radians(30.0f), glm::vec3(0.0f, 1.0f, 0.0f)) *
+    //     glm::scale(glm::mat4(1.0f), glm::vec3(1.5f, 1.5f, 1.5f));
     // transform = projection * view * modelTransform;
-    // m_grassProgram->SetUniform("transform", transform);
-    // glDrawElementsInstanced(GL_TRIANGLES, m_plane->GetIndexBuffer()->GetCount(),
-    //     GL_UNSIGNED_INT, 0,m_grassPosBuffer->GetCount());
+    // program->SetUniform("transform", transform);
+    // program->SetUniform("modelTransform", modelTransform);
+    // m_box1Material->SetToProgram(program);
+    // m_box->Draw(program);
 }

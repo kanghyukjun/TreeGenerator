@@ -11,6 +11,7 @@
 #include "model.h"
 #include "framebuffer.h"
 #include "shadow_map.h"
+#include "matrix_stack.h"
 
 CLASS_PTR(Context)
 class Context{
@@ -35,6 +36,7 @@ private:
 
     MeshUPtr m_box;
     MeshUPtr m_plane;
+    MeshUPtr m_cylinder;
 
     // clear color
     glm::vec4 m_clearColor { glm::vec4(0.1f, 0.2f, 0.3f, 0.0f) };
@@ -85,6 +87,10 @@ private:
     // shadow map
     ShadowMapUPtr m_shadowMap;
     ProgramUPtr m_lightingShadowProgram;
+
+    // stack
+    MatrixStack m_matrixStack;
+    glm::mat4 cylinderModelTransform;
 
     int m_width { WINDOW_WIDTH };
     int m_height { WINDOW_HEIGHT };

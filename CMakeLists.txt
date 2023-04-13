@@ -22,6 +22,7 @@ add_executable(${PROJECT_NAME}
     src/model.cpp src/model.h
     src/framebuffer.cpp src/framebuffer.h
     src/shadow_map.cpp src/shadow_map.h
+    src/matrix_stack.cpp src/matrix_stack.h
     )
 
 include(Dependency.cmake)

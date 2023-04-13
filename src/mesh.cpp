@@ -1,4 +1,6 @@
 #include "mesh.h"
+#define _USE_MATH_DEFINES
+#include <math.h>
 
 MeshUPtr Mesh::Create(const std::vector<Vertex>& vertices,
     const std::vector<uint32_t>& indices, uint32_t primitiveType) {
@@ -91,6 +93,21 @@ MeshUPtr Mesh::CreatePlane() {
     std::vector<uint32_t> indices = {
         0,  1,  2,  2,  3,  0,
     };
+
+    return Create(vertices, indices, GL_TRIANGLES);
+}
+
+MeshUPtr Mesh::CreateCylinder(const float radius, const float height){
+    const uint32_t n = 50;
+    float angle = 0.0f;
+    float angle_increment = 2 * M_PI / (float)n;
+
+    std::vector<Vertex> vertices;
+    std::vector<uint32_t> indices;
+
+    // vertices, indices 설정하는 코드
+    vertices.push_back(Vertex{});
+
 
     return Create(vertices, indices, GL_TRIANGLES);
 }
