@@ -306,7 +306,7 @@ void Context::Render() {
     m_simpleProgram->Use();
     m_simpleProgram->SetUniform("transform", projection * view * m_matrixStack.getCurrentMatrix());
     m_simpleProgram->SetUniform("color", glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
-    m_box->Draw(m_simpleProgram.get());
+    m_cylinder->Draw(m_simpleProgram.get());
 
 }
 

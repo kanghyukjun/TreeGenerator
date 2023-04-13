@@ -98,16 +98,70 @@ MeshUPtr Mesh::CreatePlane() {
 }
 
 MeshUPtr Mesh::CreateCylinder(const float radius, const float height){
-    const uint32_t n = 50;
-    float angle = 0.0f;
-    float angle_increment = 2 * M_PI / (float)n;
-
     std::vector<Vertex> vertices;
     std::vector<uint32_t> indices;
+    const uint32_t numSlices = 50;
 
-    // vertices, indices 설정하는 코드
-    vertices.push_back(Vertex{});
+    // Create the top cap vertices.
+    glm::vec3 topCenter = glm::vec3(0.0f, height / 2.0f, 0.0f);
+    vertices.push_back(Vertex{topCenter, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)});
+    float angleIncrement = glm::two_pi<float>() / numSlices;
+    for (int i = 0; i < numSlices; i++) {
+        float angle = angleIncrement * i;
+        glm::vec3 pos = glm::vec3(glm::cos(angle) * radius, height / 2.0f, glm::sin(angle) * radius);
+        vertices.push_back(Vertex{pos, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)});
+    }
 
+    // Create the bottom cap vertices.
+    glm::vec3 bottomCenter = glm::vec3(0.0f, -height / 2.0f, 0.0f);
+    vertices.push_back({ bottomCenter });
+    for (int i = 0; i < numSlices; i++) {
+        float angle = angleIncrement * i;
+        glm::vec3 pos = glm::vec3(glm::cos(angle) * radius, -height / 2.0f, glm::sin(angle) * radius);
+        vertices.push_back(Vertex{pos, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)});
+    }
+
+    // Create the side vertices.
+    for (int i = 0; i <= numSlices; i++) {
+        float angle = angleIncrement * i;
+        glm::vec3 posTop = glm::vec3(glm::cos(angle) * radius, height / 2.0f, glm::sin(angle) * radius);
+        glm::vec3 posBottom = glm::vec3(glm::cos(angle) * radius, -height / 2.0f, glm::sin(angle) * radius);
+        vertices.push_back(Vertex{posTop, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)});
+        vertices.push_back(Vertex{posBottom, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)});
+    }
+
+    // Create the top cap indices.
+    for (int i = 1; i < numSlices; i++) {
+        indices.push_back(0);
+        indices.push_back(i);
+        indices.push_back(i + 1);
+    }
+    indices.push_back(0);
+    indices.push_back(numSlices);
+    indices.push_back(1);
+
+    // Create the bottom cap indices.
+    int bottomCenterIndex = numSlices + 1;
+    for (int i = bottomCenterIndex + 1; i < bottomCenterIndex + numSlices; i++) {
+        indices.push_back(bottomCenterIndex);
+        indices.push_back(i % (numSlices + 1) + bottomCenterIndex);
+        indices.push_back((i + 1) % (numSlices + 1) + bottomCenterIndex);
+    }
+    indices.push_back(bottomCenterIndex);
+    indices.push_back(numSlices * 2 + 1);
+    indices.push_back(bottomCenterIndex + 1);
+
+    // Create the side indices.
+    for (int i = 0; i < numSlices; i++) {
+        int topIndex = i + 1;
+        int bottomIndex = i % numSlices + numSlices + 2;
+        indices.push_back(topIndex);
+        indices.push_back(bottomIndex + 1);
+        indices.push_back(bottomIndex);
+        indices.push_back(bottomIndex + 1);
+        indices.push_back(topIndex);
+        indices.push_back(topIndex + 1);
+    }
 
     return Create(vertices, indices, GL_TRIANGLES);
 }
