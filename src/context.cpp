@@ -73,7 +73,7 @@ void Context::Reshape(int width, int height) {
 bool Context::Init(){
     glEnable(GL_MULTISAMPLE);
     m_box = Mesh::CreateBox();
-    m_cylinder = Mesh::CreateCylinder();
+    m_cylinder = Mesh::CreateCylinder(0.15f, 2.0f);
 
     m_simpleProgram = Program::Create("./shader/simple.vs", "./shader/simple.fs");
     if(!m_simpleProgram) return false;
@@ -138,15 +138,6 @@ bool Context::Init(){
     if(!m_envMapProgram) return false;
 
     m_shadowMap = ShadowMap::Create(1024,1024);
-
-    // matrix stack 구현
-    cylinderModelTransform = glm::translate(glm::mat4(1.0), glm::vec3(0.0f, 0.3f, 0.0f));
-    m_matrixStack.pushMatrix(cylinderModelTransform);
-    m_matrixStack.pushMatrix(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 4.0f, 0.0f)));
-    m_matrixStack.pushMatrix(glm::rotate(glm::mat4(1.0f), glm::radians(30.0f), glm::vec3(1.0f, 0.0f, 0.0f)));
-
-    m_matrixStack.popMatrix();
-    m_matrixStack.pushMatrix(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 5.0f, 0.0f)));
 
     return true;
 }
@@ -236,7 +227,8 @@ void Context::Render() {
         m_shadowMap->GetShadowMap()->GetHeight());
     m_simpleProgram->Use();
     m_simpleProgram->SetUniform("color", glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
-    DrawScene(lightView, lightProjection, m_simpleProgram.get()); // 빛의 위치에서 depth 값을 렌더링
+    DrawScene(lightProjection, lightView, m_simpleProgram.get()); // 빛의 위치에서 depth 값을 렌더링
+    DrawTree(lightProjection, lightView, m_simpleProgram.get());
 
     Framebuffer::BindToDefault(); // 렌더링 종료, 원래 프로그램으로 복귀
     glViewport(0, 0, m_width, m_height);
@@ -300,18 +292,26 @@ void Context::Render() {
     m_lightingShadowProgram->SetUniform("shadowMap", 3);
     glActiveTexture(GL_TEXTURE0);
 
-    DrawScene(view, projection, m_lightingShadowProgram.get());
+    DrawScene(projection, view, m_lightingShadowProgram.get());
 
     // cylinder 렌더링
-    m_simpleProgram->Use();
-    m_simpleProgram->SetUniform("transform", projection * view * m_matrixStack.getCurrentMatrix());
-    m_simpleProgram->SetUniform("color", glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
-    m_cylinder->Draw(m_simpleProgram.get());
+    DrawTree(projection, view, m_simpleProgram.get());
+}
 
+void Context::DrawTree(const glm::mat4& projection, const glm::mat4& view, const Program* program) {
+    Context::DrawCylinder(projection, view, glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 2.0f, 0.0f)), program);
+}
+
+void Context::DrawCylinder(const glm::mat4& projection, const glm::mat4 view, const glm::mat4 modelTransform, const Program* program) {
+    program->Use();
+    auto transform = projection * view * modelTransform;
+    program->SetUniform("transform", transform);
+    program->SetUniform("color", glm::vec4(0.6f, 0.4f, 0.2f, 1.0f));
+    m_cylinder->Draw(program);
 }
 
 // context.cpp
-void Context::DrawScene(const glm::mat4& view, const glm::mat4& projection, const Program* program) {
+void Context::DrawScene(const glm::mat4& projection, const glm::mat4& view, const Program* program) {
     // 바닥
     program->Use();
     auto modelTransform =

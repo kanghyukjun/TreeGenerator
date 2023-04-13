@@ -23,7 +23,9 @@ public:
     void MouseMove(double x, double y);
     void MouseButton(int button, int action, double x, double y);
 
-    void DrawScene(const glm::mat4& view, const glm::mat4& projection, const Program* program);
+    void DrawScene(const glm::mat4& projection, const glm::mat4& view, const Program* program);
+    void DrawTree(const glm::mat4& projection, const glm::mat4& view, const Program* program);
+    void DrawCylinder(const glm::mat4& projection, const glm::mat4 view, const glm::mat4 modelTransform, const Program* program);
 
 private:
     Context(){}
@@ -87,10 +89,6 @@ private:
     // shadow map
     ShadowMapUPtr m_shadowMap;
     ProgramUPtr m_lightingShadowProgram;
-
-    // stack
-    MatrixStack m_matrixStack;
-    glm::mat4 cylinderModelTransform;
 
     int m_width { WINDOW_WIDTH };
     int m_height { WINDOW_HEIGHT };
