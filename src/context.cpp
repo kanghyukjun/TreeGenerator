@@ -301,37 +301,67 @@ void Context::Render() {
 void Context::DrawTree(const glm::mat4& projection, const glm::mat4& view, const Program* program) {
     const float angle = 30.0f;
     // const float front = m_cylinderHeight * 0.9f;
+    std::stack<int> count;
     MatrixStack stack;
-    stack.pushMatrix(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 1.0f + m_cylinderHeight, 0.0f)));
+    stack.pushMatrix(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 1.0f, 0.0f)));
 
     glm::mat4 rotateRight = 
         glm::rotate(glm::mat4(1.0f), glm::radians(angle), glm::vec3(1.0f, 0.0f, 0.0f)) * 
-        glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, m_cylinderHeight, 1.1f * sin(angle * M_PI / 180.0f) * (m_cylinderHeight/2.0f)));
+        glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 1.1f * sin(angle * M_PI / 180.0f) * (m_cylinderHeight/2.0f)));
     glm::mat4 rotateLeft = 
         glm::rotate(glm::mat4(1.0f), glm::radians(-1.0f * angle), glm::vec3(1.0f, 0.0f, 0.0f)) *
-        glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, m_cylinderHeight, -1.1f * sin(angle * M_PI / 180.0f) * (m_cylinderHeight/2.0f)));
+        glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -1.1f * sin(angle * M_PI / 180.0f) * (m_cylinderHeight/2.0f)));
     glm::mat4 goFront = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, m_cylinderHeight, 0.0f));
 
+    char codes[] = {"FFF-[FF]+X"};
 
-    Context::DrawCylinder(projection, view, stack.getCurrentMatrix(), program);
-    stack.pushMatrix(rotateRight);
-    Context::DrawCylinder(projection, view, stack.getCurrentMatrix(), program);
-    stack.pushMatrix(rotateRight);
-    Context::DrawCylinder(projection, view, stack.getCurrentMatrix(), program);
-    stack.popMatrix();
-    stack.pushMatrix(rotateLeft);
-    Context::DrawCylinder(projection, view, stack.getCurrentMatrix(), program);
-    stack.popMatrix();
-    stack.popMatrix();
-    stack.pushMatrix(rotateLeft);
-    Context::DrawCylinder(projection, view, stack.getCurrentMatrix(), program);
-    stack.pushMatrix(rotateRight);
-    Context::DrawCylinder(projection, view, stack.getCurrentMatrix(), program);
-    stack.popMatrix();
-    stack.pushMatrix(rotateLeft);
-    Context::DrawCylinder(projection, view, stack.getCurrentMatrix(), program);
-    stack.popMatrix();
-    stack.popMatrix();
+    for(int i=0; i<strlen(codes); i++){
+        switch(codes[i]){
+        case 'F': case 'X':
+            if(!count.empty()) {
+                int top = count.top();
+                top+=1;
+                count.pop();
+                count.push(top);
+            }
+            stack.pushMatrix(goFront);
+            Context::DrawCylinder(projection, view, stack.getCurrentMatrix(), program);
+            break;
+
+        case '-':
+            if(!count.empty()) {
+                int top = count.top();
+                top+=1;
+                count.pop();
+                count.push(top);
+            }
+            stack.pushMatrix(rotateLeft);
+            break;
+
+        case '+':
+            if(!count.empty()) {
+                int top = count.top();
+                top+=1;
+                count.pop();
+                count.push(top);
+            }
+            stack.pushMatrix(rotateRight);
+            break;
+
+        case '[':
+            count.push(0);
+            break;
+
+        case ']':
+            if(codes[i-1] == 'X' || codes[i-1] == 'F'); // draw leaves
+            for(int i=0; i<count.top(); i++){
+                stack.popMatrix();
+            }
+            count.pop();
+            break;
+        }
+    }
+
 }
 
 void Context::DrawCylinder(const glm::mat4& projection, const glm::mat4 view, const glm::mat4 modelTransform, const Program* program) {

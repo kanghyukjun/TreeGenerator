@@ -93,8 +93,8 @@ private:
     ProgramUPtr m_lightingShadowProgram;
 
     // cylinder length;
-    float m_cylinderRadius { 0.15f };
-    float m_cylinderHeight { 2.0f };
+    float m_cylinderRadius { 0.05f };
+    float m_cylinderHeight { 0.5f };
 
     int m_width { WINDOW_WIDTH };
     int m_height { WINDOW_HEIGHT };
