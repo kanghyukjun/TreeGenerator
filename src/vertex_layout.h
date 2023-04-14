@@ -1,4 +1,4 @@
-#ifndef __VERTEX_LAYOUT_H__
+﻿#ifndef __VERTEX_LAYOUT_H__
 #define __VERTEX_LAYOUT_H__
 
 #include "common.h"

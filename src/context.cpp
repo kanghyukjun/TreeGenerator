@@ -1,4 +1,4 @@
-#include "context.h"
+﻿#include "context.h"
 #include "image.h"
 #include <imgui.h>
 
@@ -300,11 +300,10 @@ void Context::Render() {
 // 회전 후 이동 -> 이동행렬 * 회전행렬 (순서)
 void Context::DrawTree(const glm::mat4& projection, const glm::mat4& view, const Program* program) {
     const float angle = 30.0f;
-    // const float front = m_cylinderHeight * 0.9f;
     std::stack<int> count;
     MatrixStack stack;
-    stack.pushMatrix(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 1.0f, 0.0f)));
 
+    stack.pushMatrix(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, m_cylinderHeight / 2.0f, 0.0f)));
     glm::mat4 rotateRight = 
         glm::rotate(glm::mat4(1.0f), glm::radians(angle), glm::vec3(1.0f, 0.0f, 0.0f)) * 
         glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 1.1f * sin(angle * M_PI / 180.0f) * (m_cylinderHeight/2.0f)));
@@ -313,7 +312,8 @@ void Context::DrawTree(const glm::mat4& projection, const glm::mat4& view, const
         glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -1.1f * sin(angle * M_PI / 180.0f) * (m_cylinderHeight/2.0f)));
     glm::mat4 goFront = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, m_cylinderHeight, 0.0f));
 
-    char codes[] = {"FFF-[FF]+X"};
+
+    char codes[] = {"F[-F[-F[-X][+X]][+F[-X][+X]]][+F[-F[-X][+X]][+F[-X][+X]]]"};
 
     for(int i=0; i<strlen(codes); i++){
         switch(codes[i]){
