@@ -27,7 +27,10 @@ public:
 
     void DrawScene(const glm::mat4& projection, const glm::mat4& view, const Program* program);
     void DrawTree(const glm::mat4& projection, const glm::mat4& view, const Program* program);
-    void DrawCylinder(const glm::mat4& projection, const glm::mat4 view, const glm::mat4 modelTransform, const Program* program);
+    void DrawLeaves(const glm::mat4& projection, const glm::mat4& view,
+        const glm::mat4 modelTransform, const Program* program, char direction);
+    void DrawCylinder(const glm::mat4& projection, const glm::mat4 view,
+        const glm::mat4 modelTransform, const Program* program);
 
 private:
     Context(){}
@@ -62,7 +65,8 @@ private:
     // material parameter
     MaterialPtr m_planeMaterial;
     MaterialPtr m_box1Material;
-    MaterialPtr m_box2Material;
+    MaterialPtr m_branchMaterial;
+    MaterialPtr m_leafMaterial;
     TexturePtr m_windowTexture;
 
     // camera parameter
