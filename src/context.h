@@ -44,6 +44,7 @@ private:
     MeshUPtr m_box;
     MeshUPtr m_plane;
     MeshUPtr m_cylinder;
+    MeshUPtr m_leaf;
 
     // clear color
     glm::vec4 m_clearColor { glm::vec4(0.1f, 0.2f, 0.3f, 0.0f) };
@@ -51,11 +52,11 @@ private:
     // light parameter
     struct Light {
         bool directional { true };
-        glm::vec3 position { glm::vec3(2.0f, 4.0f, 4.0f) };
-        glm::vec3 direction { glm::vec3(-0.5f, -1.5f, -1.0f) };
+        glm::vec3 position { glm::vec3(0.0f, 15.0f, 1.0f) };
+        glm::vec3 direction { glm::vec3(2.0f, -7.0f, -1.0f) };
         glm::vec2 cutoff { glm::vec2(50.0f, 5.0f) };
         float distance { 150.0f };
-        glm::vec3 ambient { glm::vec3(0.1f, 0.1f, 0.1f) };
+        glm::vec3 ambient { glm::vec3(0.3f, 0.3f, 0.3f) };
         glm::vec3 diffuse { glm::vec3(0.5f, 0.5f, 0.5f) };
         glm::vec3 specular { glm::vec3(1.0f, 1.0f, 1.0f) };
     };
@@ -72,9 +73,9 @@ private:
     // camera parameter
     bool m_cameraControl { false };
     glm::vec2 m_prevMousePos { glm::vec2(0.0f) };
-    float m_cameraPitch { -38.0f };
-    float m_cameraYaw { 334.0f };
-    glm::vec3 m_cameraPos { glm::vec3(-7.0f, 13.0f, 15.0f) };
+    float m_cameraPitch { -5.0f };
+    float m_cameraYaw { 270.0f };
+    glm::vec3 m_cameraPos { glm::vec3(-13.0f, 6.0f, 0.0f) };
     glm::vec3 m_cameraFront { glm::vec3(0.0f, 0.0f, -1.0f) };
     glm::vec3 m_cameraUp { glm::vec3(0.0f, 1.0f, 0.0f) };
 
@@ -99,6 +100,8 @@ private:
     // cylinder length;
     float m_cylinderRadius { 0.05f };
     float m_cylinderHeight { 0.5f };
+    float m_leafRadius { 0.1f };
+    float m_leafHeight { 0.2f };
 
     int m_width { WINDOW_WIDTH };
     int m_height { WINDOW_HEIGHT };
