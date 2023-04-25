@@ -73,9 +73,9 @@ private:
     // camera parameter
     bool m_cameraControl { false };
     glm::vec2 m_prevMousePos { glm::vec2(0.0f) };
-    float m_cameraPitch { -5.0f };
-    float m_cameraYaw { 270.0f };
-    glm::vec3 m_cameraPos { glm::vec3(-13.0f, 6.0f, 0.0f) };
+    float m_cameraPitch { -14.0f };
+    float m_cameraYaw { 0.0f };
+    glm::vec3 m_cameraPos { glm::vec3(0.0f, 4.0f, 12.0f) };
     glm::vec3 m_cameraFront { glm::vec3(0.0f, 0.0f, -1.0f) };
     glm::vec3 m_cameraUp { glm::vec3(0.0f, 1.0f, 0.0f) };
 

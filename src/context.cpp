@@ -167,9 +167,9 @@ void Context::Render() {
         ImGui::DragFloat("camera pitch",&m_cameraPitch, 0.05f, -89.0f, 89.0f);
         ImGui::Separator();
         if(ImGui::Button("reset camera")){
-            m_cameraPitch = -38.0f;
-            m_cameraYaw = 334.0f;
-            m_cameraPos = glm::vec3(-7.0f, 13.0f, 15.0f);
+            m_cameraPitch = -14.0f;
+            m_cameraYaw = 0.0f;
+            m_cameraPos = glm::vec3(0.0f, 4.0f, 12.0f);
         }
         ImGui::Separator();
         if (ImGui::CollapsingHeader("light", ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -186,37 +186,37 @@ void Context::Render() {
     }
     ImGui::End();
 
-    // const char* treeType[] = {"binary tree", "arrow weed", "fuzzy weed", "twiggy weed", "tall seaweed", "wavy seaweed"};
-    // const char* genType[] = {"context-free", "context-sensitive", "stochastic", "parametric"};
-    // static int tree_current = 0;
-    // static int gen_current = 0;
-    // static char axiom[128] = "X";
-    // static float angle = 10.0f;
-    // static float iterations = 3;
-    // static float length = 5.0f;
-    // if(ImGui::Begin("Tree parameter")){
-    //     ImGui::Combo("tree type", &tree_current, treeType, IM_ARRAYSIZE(treeType));
-    //     ImGui::Combo("generate type", &gen_current, genType, IM_ARRAYSIZE(genType));
-    //     ImGui::InputText("axiom", axiom, IM_ARRAYSIZE(axiom));
-    //     ImGui::Separator();
-    //     ImGui::DragFloat("angle", &angle, 0.1f, 10.0f, 85.0f);
-    //     ImGui::DragFloat("iterations", &iterations, 1.0f, 1.0f, 6.0f);
-    //     ImGui::DragFloat("length", &length, 0.1f, 1.0f, 10.0f);
-    //     ImGui::Separator();
-    //     if(ImGui::Button("draw"));
-    //     ImGui::Separator();
-    //     if(ImGui::CollapsingHeader("rules", ImGuiTreeNodeFlags_DefaultOpen)){
-    //         static ImGuiInputTextFlags flags = ImGuiInputTextFlags_AllowTabInput;
-    //         static char text[1024 * 4] = 
-    //             "\n"
-    //             "F -> FF\n\n"
-    //             "X -> F-[[X]+X]+F[+FX]-X\n\n"
-    //             "X -> F+[[X]-X]-F[-FX]+X";
-    //         ImGui::InputTextMultiline("##source", text, IM_ARRAYSIZE(text),
-    //         ImVec2(-FLT_MIN, ImGui::GetTextLineHeight() * 16), flags);
-    //     }
-    // }
-    // ImGui::End();
+    const char* treeType[] = {"binary tree", "arrow weed", "fuzzy weed", "twiggy weed", "tall seaweed", "wavy seaweed"};
+    const char* genType[] = {"context-free", "context-sensitive", "stochastic", "parametric"};
+    static int tree_current = 0;
+    static int gen_current = 0;
+    static char axiom[128] = "X";
+    static float angle = 10.0f;
+    static float iterations = 3;
+    static float length = 5.0f;
+    if(ImGui::Begin("Tree parameter")){
+        ImGui::Combo("tree type", &tree_current, treeType, IM_ARRAYSIZE(treeType));
+        ImGui::Combo("generate type", &gen_current, genType, IM_ARRAYSIZE(genType));
+        ImGui::InputText("axiom", axiom, IM_ARRAYSIZE(axiom));
+        ImGui::Separator();
+        ImGui::DragFloat("angle", &angle, 0.1f, 10.0f, 85.0f);
+        ImGui::DragFloat("iterations", &iterations, 1.0f, 1.0f, 6.0f);
+        ImGui::DragFloat("length", &length, 0.1f, 1.0f, 10.0f);
+        ImGui::Separator();
+        if(ImGui::Button("draw"));
+        ImGui::Separator();
+        if(ImGui::CollapsingHeader("rules", ImGuiTreeNodeFlags_DefaultOpen)){
+            static ImGuiInputTextFlags flags = ImGuiInputTextFlags_AllowTabInput;
+            static char text[1024 * 4] = 
+                "\n"
+                "F -> FF\n\n"
+                "X -> F-[[X]+X]+F[+FX]-X\n\n"
+                "X -> F+[[X]-X]-F[-FX]+X";
+            ImGui::InputTextMultiline("##source", text, IM_ARRAYSIZE(text),
+            ImVec2(-FLT_MIN, ImGui::GetTextLineHeight() * 16), flags);
+        }
+    }
+    ImGui::End();
     
     if(ImGui::Begin("view")){
         ImGui::Image((ImTextureID)m_shadowMap->GetShadowMap()->Get(),
@@ -322,22 +322,22 @@ void Context::DrawTree(const glm::mat4& projection, const glm::mat4& view, const
     stackCount.push(0);
     directionCount.push(0);
     glm::mat4 rotateRight = 
-        glm::rotate(glm::mat4(1.0f), glm::radians(angle), glm::vec3(1.0f, 0.0f, 0.0f)) * 
-        glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 1.1f * sin(angle * M_PI / 180.0f) * (m_cylinderHeight/2.0f)));
+        glm::rotate(glm::mat4(1.0f), glm::radians(-1.0f * angle), glm::vec3(0.0f, 0.0f, 1.0f)) * 
+        glm::translate(glm::mat4(1.0f), glm::vec3(1.1f * sin(angle * M_PI / 180.0f) * (m_cylinderHeight/2.0f), 0.0f, 0.0f));
     glm::mat4 rotateLeft = 
-        glm::rotate(glm::mat4(1.0f), glm::radians(-1.0f * angle), glm::vec3(1.0f, 0.0f, 0.0f)) *
-        glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -1.1f * sin(angle * M_PI / 180.0f) * (m_cylinderHeight/2.0f)));
+        glm::rotate(glm::mat4(1.0f), glm::radians(angle), glm::vec3(0.0f, 0.0f, 1.0f)) *
+        glm::translate(glm::mat4(1.0f), glm::vec3(-1.1f * sin(angle * M_PI / 180.0f) * (m_cylinderHeight/2.0f), 0.0f, 0.0f));
     glm::mat4 goFront = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, m_cylinderHeight, 0.0f));
 
 
-    char codes[] = {"FFFF+[[FF-[[F+[[X]-X]-F[-FX]+X]+F+[[X]-X]-F[-FX]+X]\
-                    +FF[+FFF+[[X]-X]-F[-FX]+X]-F+[[X]-X]-F[-FX]+X]-FF+[[\
-                    F+[[X]-X]-F[-FX]+X]-F-[[X]+X]+F[+FX]-X]-FF[-FFF+[[X]\
-                    -X]-F[-FX]+X]+F-[[X]+X]+F[+FX]-X]-FFFF[-FFFFFF+[[F-[\
-                    [X]+X]+F[+FX]-X]-F+[[X]-X]-F[-FX]+X]-FF[-FFF-[[X]+X]\
-                    +F[+FX]-X]+F-[[X]+X]+F[+FX]-X]+FF-[[F-[[X]+X]+F[+FX]\
-                    -X]+F+[[X]-X]-F[-FX]+X]+FF[+FFF-[[X]+X]+F[+FX]-X]-F-[[X]+X]+F[+FX]-X"};
-    // char codes[] = {"F+F--F+F"};
+    // char codes[] = {"FFFF+[[FF-[[F+[[X]-X]-F[-FX]+X]+F+[[X]-X]-F[-FX]+X]\
+    //                 +FF[+FFF+[[X]-X]-F[-FX]+X]-F+[[X]-X]-F[-FX]+X]-FF+[[\
+    //                 F+[[X]-X]-F[-FX]+X]-F-[[X]+X]+F[+FX]-X]-FF[-FFF+[[X]\
+    //                 -X]-F[-FX]+X]+F-[[X]+X]+F[+FX]-X]-FFFF[-FFFFFF+[[F-[\
+    //                 [X]+X]+F[+FX]-X]-F+[[X]-X]-F[-FX]+X]-FF[-FFF-[[X]+X]\
+    //                 +F[+FX]-X]+F-[[X]+X]+F[+FX]-X]+FF-[[F-[[X]+X]+F[+FX]\
+    //                 -X]+F+[[X]-X]-F[-FX]+X]+FF[+FFF-[[X]+X]+F[+FX]-X]-F-[[X]+X]+F[+FX]-X"};
+    char codes[] = {"F[-F[-F[-X][+X]][+F[-X][+X]]][+F[-F[-X][+X]][+F[-X][+X]]]"};
 
     int matrixTop = 0;
     int directionTop = 0;
@@ -409,20 +409,23 @@ void Context::DrawLeaves(const glm::mat4& projection, const glm::mat4& view,
     const glm::mat4 modelTransform, const Program* program, char direction){
 
     float angle = 30.0f;
+    glm::mat4 rotateRight = glm::translate(glm::mat4(1.0f),
+            glm::vec3(0.9f * sin(angle * M_PI / 180.0f) * (m_leafHeight / 2.0f),
+            (-1.0f) * cos(angle * M_PI / 180.0f) * (2.0f * m_leafRadius), 0.0f)) * 
+            glm::rotate(glm::mat4(1.0f), glm::radians(-1.0f * angle), glm::vec3(0.0f, 0.0f, 1.0f));
+    glm::mat4 rotateLeft = glm::translate(glm::mat4(1.0f),
+            glm::vec3(-0.9f * sin(angle * M_PI / 180.0f) * (m_leafHeight / 2.0f),
+            (-1.0f) * cos(angle * M_PI / 180.0f) * (2.0f * m_leafRadius), 0.0f)) * 
+            glm::rotate(glm::mat4(1.0f), glm::radians(angle), glm::vec3(0.0f, 0.0f, 1.0f));
+
     glm::mat4 rotate;
     switch(direction){
     case '+':
-        rotate = glm::translate(glm::mat4(1.0f),
-            glm::vec3(0.0f, (-1.0f) * sin(angle * M_PI / 180.0f) * ((1.5f) * m_leafRadius),
-            0.9f * sin(angle * M_PI / 180.0f) * (m_leafHeight / 2.0f))) * 
-            glm::rotate(glm::mat4(1.0f), glm::radians(angle), glm::vec3(1.0f, 0.0f, 0.0f));
+        rotate = rotateRight;
         break;
     
     case '-':
-        rotate = glm::translate(glm::mat4(1.0f),
-            glm::vec3(0.0f, (-1.0f) * sin(angle * M_PI / 180.0f) * ((1.5f) * m_leafRadius),
-            -0.9f * sin(angle * M_PI / 180.0f) * (m_leafHeight / 2.0f))) * 
-            glm::rotate(glm::mat4(1.0f), glm::radians(-1.0f * angle), glm::vec3(1.0f, 0.0f, 0.0f));
+        rotate = rotateLeft;
         break;
     }
 
