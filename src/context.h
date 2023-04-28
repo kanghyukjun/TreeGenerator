@@ -14,6 +14,8 @@
 #include "matrix_stack.h"
 #define _USE_MATH_DEFINES
 #include <math.h>
+#include <string>
+#include <vector>
 
 CLASS_PTR(Context)
 class Context{
@@ -31,6 +33,8 @@ public:
         const glm::mat4 modelTransform, const Program* program, char direction);
     void DrawCylinder(const glm::mat4& projection, const glm::mat4 view,
         const glm::mat4 modelTransform, const Program* program);
+    
+    std::string MakeCodes();
 
 private:
     Context(){}
@@ -102,6 +106,19 @@ private:
     float m_cylinderHeight { 0.5f };
     float m_leafRadius { 0.1f };
     float m_leafHeight { 0.2f };
+
+    // tree
+    float m_angle { 30.0f };
+    bool m_newCodes { false };
+    std::vector<std::string> m_codesVector;
+    std::string m_codes { NULL };
+    std::string m_rules { NULL };
+    std::string m_axiom { 'X' };
+    int m_iteration { 3 };
+
+    float gui_angle { m_angle };
+    float gui_radius = { m_cylinderRadius };
+    float gui_length = { m_cylinderHeight };
 
     int m_width { WINDOW_WIDTH };
     int m_height { WINDOW_HEIGHT };
