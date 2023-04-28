@@ -113,7 +113,7 @@ private:
     std::vector<std::string> m_codesVector;
     std::string m_codes { NULL };
     std::string m_rules { NULL };
-    std::string m_axiom { 'X' };
+    std::string m_axiom { "FFA" };
     int m_iteration { 3 };
 
     float gui_angle { m_angle };

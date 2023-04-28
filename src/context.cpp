@@ -86,7 +86,7 @@ std::string Context::MakeCodes() {
             result = std::regex_replace(result, std::regex(condition), replace);
     }
 
-    SPDLOG_INFO("string: {}", result);
+    // SPDLOG_INFO("string: {}", result);
     return result;
 }
 
@@ -216,6 +216,13 @@ void Context::Render() {
             m_cylinderRadius = gui_radius;
             m_cylinderHeight = gui_length;
         }
+        if(ImGui::Button("Clear")){
+            m_codes = "";
+        }
+        ImGui::Separator();
+        if (ImGui::CollapsingHeader("string", ImGuiTreeNodeFlags_DefaultOpen)){
+            ImGui::TextWrapped("%s",m_codes.c_str());
+        }
     }
     ImGui::End();
 
@@ -271,7 +278,8 @@ void Context::Render() {
     if(m_newCodes){
         // 규칙에 의해 새로운 코드를 생성하는 코드
         m_codesVector.clear();
-        m_codesVector.push_back("X=F[-X][+X]");
+        m_codesVector.push_back("A=F[--&&&FC][++&&&FC][--^FC][++^FC]");
+        m_codesVector.push_back("C=F[--<&&FC]||[++>&&FC]||[+<^^FC]||[->^^FC]");
         m_codes = MakeCodes();
         m_newCodes = false;
     }
@@ -362,35 +370,53 @@ void Context::DrawTree(const glm::mat4& projection, const glm::mat4& view, const
     std::stack<char> direction; // 나뭇잎의 방향을 정하기 위한 스택
     std::stack<int> directionCount; // 나뭇잎 방향 pop 하는 수 정하기 위한 스택
 
-    float trigon_translate = sin(m_angle * M_PI / 180.0f) * (m_cylinderHeight/2.0f);
+    double trigon_translate = sin(m_angle * M_PI / 180.0f) * (m_cylinderHeight/2.0f);
 
     // 회전행렬 1.1배 => 가중치
-    stack.pushMatrix(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, m_cylinderHeight / 2.0f, 0.0f)));
+    stack.pushMatrix(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, m_cylinderHeight/1.7f, 0.0f)));
     stackCount.push(0);
     directionCount.push(0);
-    glm::mat4 rotateRight = 
+
+    glm::mat4 rotateYMinus = 
+        glm::rotate(glm::mat4(1.0f), glm::radians(-1.0f * m_angle), glm::vec3(0.0f, 1.0f, 0.0f));
+    glm::mat4 rotateYPlus = 
+        glm::rotate(glm::mat4(1.0f), glm::radians(m_angle), glm::vec3(0.0f, 1.0f, 0.0f));
+    glm::mat4 rotateY180 = 
+        glm::rotate(glm::mat4(1.0f), glm::radians(180.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+
+    glm::mat4 rotateXMinus = 
+        glm::rotate(glm::mat4(1.0f), glm::radians(-1.0f * m_angle), glm::vec3(1.0f, 0.0f, 0.0f)) * 
+        glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -1.1f * trigon_translate));
+    glm::mat4 rotateXPlus = 
+        glm::rotate(glm::mat4(1.0f), glm::radians(m_angle), glm::vec3(1.0f, 0.0f, 0.0f)) *
+        glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 1.1f * trigon_translate));
+
+    glm::mat4 rotateZMinus = 
         glm::rotate(glm::mat4(1.0f), glm::radians(-1.0f * m_angle), glm::vec3(0.0f, 0.0f, 1.0f)) * 
         glm::translate(glm::mat4(1.0f), glm::vec3(1.1f * trigon_translate, 0.0f, 0.0f));
-    glm::mat4 rotateLeft = 
+    glm::mat4 rotateZPlus = 
         glm::rotate(glm::mat4(1.0f), glm::radians(m_angle), glm::vec3(0.0f, 0.0f, 1.0f)) *
         glm::translate(glm::mat4(1.0f), glm::vec3(-1.1f * trigon_translate, 0.0f, 0.0f));
+
     glm::mat4 goFront = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, m_cylinderHeight, 0.0f));
-
-
-    // char codes[] = {"FFFF+[[FF-[[F+[[X]-X]-F[-FX]+X]+F+[[X]-X]-F[-FX]+X]\
-    //                 +FF[+FFF+[[X]-X]-F[-FX]+X]-F+[[X]-X]-F[-FX]+X]-FF+[[\
-    //                 F+[[X]-X]-F[-FX]+X]-F-[[X]+X]+F[+FX]-X]-FF[-FFF+[[X]\
-    //                 -X]-F[-FX]+X]+F-[[X]+X]+F[+FX]-X]-FFFF[-FFFFFF+[[F-[\
-    //                 [X]+X]+F[+FX]-X]-F+[[X]-X]-F[-FX]+X]-FF[-FFF-[[X]+X]\
-    //                 +F[+FX]-X]+F-[[X]+X]+F[+FX]-X]+FF-[[F-[[X]+X]+F[+FX]\
-    //                 -X]+F+[[X]-X]-F[-FX]+X]+FF[+FFF-[[X]+X]+F[+FX]-X]-F-[[X]+X]+F[+FX]-X"};
-    // char codes[] = {"F[-F[-F[-X][+X]][+F[-X][+X]]][+F[-F[-X][+X]][+F[-X][+X]]]"};
 
     int matrixTop = 0;
     int directionTop = 0;
+    auto matrix_function = [&]()-> void {
+        matrixTop = stackCount.top();
+        matrixTop+=1;
+        stackCount.pop();
+        stackCount.push(matrixTop);
+
+        directionTop = directionCount.top();
+        directionTop+=1;
+        directionCount.pop();
+        directionCount.push(directionTop);
+    };
+
     for(int i=0; i<m_codes.length(); i++){
         switch(m_codes.at(i)){
-        case 'F': case 'X':
+        case 'F': case 'X': case 'A': case 'C':
             matrixTop = stackCount.top();
             matrixTop+=1;
             stackCount.pop();
@@ -400,34 +426,46 @@ void Context::DrawTree(const glm::mat4& projection, const glm::mat4& view, const
             Context::DrawCylinder(projection, view, stack.getCurrentMatrix(), program);
             break;
 
-        case '-':
-            matrixTop = stackCount.top();
-            matrixTop+=1;
-            stackCount.pop();
-            stackCount.push(matrixTop);
-
-            directionTop = directionCount.top();
-            directionTop+=1;
-            directionCount.pop();
-            directionCount.push(directionTop);
-
-            direction.push('-');
-            stack.pushMatrix(rotateLeft); // 방향
+        case '+':
+            matrix_function();
+            direction.push('+');
+            stack.pushMatrix(rotateYPlus); // 방향
             break;
 
-        case '+':
-            matrixTop = stackCount.top();
-            matrixTop+=1;
-            stackCount.pop();
-            stackCount.push(matrixTop);
+        case '-':
+            matrix_function();
+            direction.push('-');
+            stack.pushMatrix(rotateYMinus); // 방향
+            break;
 
-            directionTop = directionCount.top();
-            directionTop+=1;
-            directionCount.pop();
-            directionCount.push(directionTop);
+        case '^':
+            matrix_function();
+            direction.push('^');
+            stack.pushMatrix(rotateXPlus); // 방향
+            break;
 
-            direction.push('+');
-            stack.pushMatrix(rotateRight); // 방향
+        case '&':
+            matrix_function();
+            direction.push('&');
+            stack.pushMatrix(rotateXMinus); // 방향
+            break;
+
+        case '<':
+            matrix_function();
+            direction.push('<');
+            stack.pushMatrix(rotateZPlus); // 방향
+            break;
+
+        case '>':
+            matrix_function();
+            direction.push('>');
+            stack.pushMatrix(rotateZMinus); // 방향
+            break;
+
+        case '|':
+            matrix_function();
+            direction.push('|');
+            stack.pushMatrix(rotateY180); // 방향
             break;
 
         case '[':
@@ -436,7 +474,7 @@ void Context::DrawTree(const glm::mat4& projection, const glm::mat4& view, const
             break;
 
         case ']':
-            if(m_codes.at(i-1) == 'X' || m_codes.at(i-1) == 'F') {
+            if(m_codes.at(i-1) == 'X' || m_codes.at(i-1) == 'F' || m_codes.at(i-1) == 'A' || m_codes.at(i-1) == 'C') {
                 // draw leaves
                 Context::DrawLeaves(projection, view, stack.getCurrentMatrix(), program, direction.top());
             }
@@ -455,24 +493,59 @@ void Context::DrawTree(const glm::mat4& projection, const glm::mat4& view, const
 void Context::DrawLeaves(const glm::mat4& projection, const glm::mat4& view,
     const glm::mat4 modelTransform, const Program* program, char direction){
 
-    // float angle = 30.0f;
-    glm::mat4 rotateRight = glm::translate(glm::mat4(1.0f),
-            glm::vec3(0.9f * sin(m_angle * M_PI / 180.0f) * (m_leafHeight / 2.0f),
-            (-1.0f) * cos(m_angle * M_PI / 180.0f) * (2.0f * m_leafRadius), 0.0f)) * 
-            glm::rotate(glm::mat4(1.0f), glm::radians(-1.0f * m_angle), glm::vec3(0.0f, 0.0f, 1.0f));
-    glm::mat4 rotateLeft = glm::translate(glm::mat4(1.0f),
-            glm::vec3(-0.9f * sin(m_angle * M_PI / 180.0f) * (m_leafHeight / 2.0f),
-            (-1.0f) * cos(m_angle * M_PI / 180.0f) * (2.0f * m_leafRadius), 0.0f)) * 
-            glm::rotate(glm::mat4(1.0f), glm::radians(m_angle), glm::vec3(0.0f, 0.0f, 1.0f));
+    double trigon_translate = sin(m_angle * M_PI / 180.0f) * (m_leafHeight / 2.0f);
+    double trigon_down = (-1.0f) * cos(m_angle * M_PI / 180.0f) * (2.0f * m_leafRadius);
+
+    glm::mat4 rotateYMinus = 
+        glm::rotate(glm::mat4(1.0f), glm::radians(-1.0f * m_angle), glm::vec3(0.0f, 1.0f, 0.0f));
+    glm::mat4 rotateYPlus = 
+        glm::rotate(glm::mat4(1.0f), glm::radians(m_angle), glm::vec3(0.0f, 1.0f, 0.0f));
+    glm::mat4 rotateY180 = 
+        glm::rotate(glm::mat4(1.0f), glm::radians(180.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+
+    glm::mat4 rotateXMinus = 
+        glm::rotate(glm::mat4(1.0f), glm::radians(-1.0f * m_angle), glm::vec3(1.0f, 0.0f, 0.0f)) * 
+        glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, trigon_down, -1.0f * trigon_translate));
+    glm::mat4 rotateXPlus = 
+        glm::rotate(glm::mat4(1.0f), glm::radians(m_angle), glm::vec3(1.0f, 0.0f, 0.0f)) *
+        glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, trigon_down, 1.0f * trigon_translate));
+
+    glm::mat4 rotateZMinus = 
+        glm::rotate(glm::mat4(1.0f), glm::radians(-1.0f * m_angle), glm::vec3(0.0f, 0.0f, 1.0f)) * 
+        glm::translate(glm::mat4(1.0f), glm::vec3(1.0f * trigon_translate, trigon_down, 0.0f));
+    glm::mat4 rotateZPlus = 
+        glm::rotate(glm::mat4(1.0f), glm::radians(m_angle), glm::vec3(0.0f, 0.0f, 1.0f)) *
+        glm::translate(glm::mat4(1.0f), glm::vec3(-1.0f * trigon_translate, trigon_down, 0.0f));
+
 
     glm::mat4 rotate;
     switch(direction){
     case '+':
-        rotate = rotateRight;
+        rotate = rotateYPlus;
         break;
     
     case '-':
-        rotate = rotateLeft;
+        rotate = rotateYMinus;
+        break;
+    
+    case '^':
+        rotate = rotateXPlus;
+        break;
+
+    case '&':
+        rotate = rotateXMinus;
+        break;
+
+    case '<':
+        rotate = rotateZPlus;
+        break;
+
+    case '>':
+        rotate = rotateZMinus;
+        break;
+
+    case '|':
+        rotate = rotateY180;
         break;
     }
 
