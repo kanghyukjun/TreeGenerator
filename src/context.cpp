@@ -206,7 +206,7 @@ void Context::Render() {
 
     if(ImGui::Begin("Tree")){
         ImGui::DragFloat("angle", &gui_angle, 0.1f, 20.0f, 70.0f);
-        ImGui::DragFloat("radius", &gui_radius, 0.005f, 0.03f, 0.1f);
+        ImGui::DragFloat("radius", &gui_radius, 0.005f, 0.05f, 0.3f);
         ImGui::DragFloat("length", &gui_length, 0.03f, 0.3f, 2.0f);
         ImGui::DragInt("iteration", &m_iteration, 0.05f, 0, 4);
         ImGui::Separator();
@@ -281,6 +281,8 @@ void Context::Render() {
         m_codesVector.push_back("A=F[--&&&FC][++&&&FC][--^FC][++^FC]");
         m_codesVector.push_back("C=F[--<&&FC]||[++>&&FC]||[+<^^FC]||[->^^FC]");
         m_codes = MakeCodes();
+        m_cylinderHeight *= 1.3f;
+        m_cylinderRadius *= 1.3f;
         m_newCodes = false;
     }
 
@@ -398,7 +400,8 @@ void Context::DrawTree(const glm::mat4& projection, const glm::mat4& view, const
         glm::rotate(glm::mat4(1.0f), glm::radians(m_angle), glm::vec3(0.0f, 0.0f, 1.0f)) *
         glm::translate(glm::mat4(1.0f), glm::vec3(-1.1f * trigon_translate, 0.0f, 0.0f));
 
-    glm::mat4 goFront = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, m_cylinderHeight, 0.0f));
+    glm::mat4 goFront = glm::scale(glm::mat4(1.0f), glm::vec3(0.75f, 0.75f, 0.75f)) *
+        glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, m_cylinderHeight * 0.8f, 0.0f));
 
     int matrixTop = 0;
     int directionTop = 0;

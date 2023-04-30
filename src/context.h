@@ -102,10 +102,10 @@ private:
     ProgramUPtr m_lightingShadowProgram;
 
     // cylinder length;
-    float m_cylinderRadius { 0.05f };
-    float m_cylinderHeight { 0.5f };
-    float m_leafRadius { 0.1f };
-    float m_leafHeight { 0.2f };
+    float m_cylinderRadius { 0.1f };
+    float m_cylinderHeight { 1.0f };
+    float m_leafRadius { 0.4f };
+    float m_leafHeight { 0.8f };
 
     // tree
     float m_angle { 30.0f };
