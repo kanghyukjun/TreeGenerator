@@ -5,6 +5,11 @@ MatrixStack::MatrixStack(){
     matrixStack.push(glm::mat4(1.0f));
 }
 
+bool MatrixStack::isEmpty() {
+    if(matrixStack.empty()) return true;
+    else return false;
+}
+
 // 가장 top에 있는 행렬에 matrix 적용하여 push
 void MatrixStack::pushMatrix(const glm::mat4 matrix){
     matrixStack.push(matrixStack.top()*matrix);

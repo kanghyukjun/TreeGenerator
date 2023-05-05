@@ -97,7 +97,7 @@ MeshUPtr Mesh::CreatePlane() {
     return Create(vertices, indices, GL_TRIANGLES);
 }
 
-MeshUPtr Mesh::CreateCylinder(const float radius, const float height){
+MeshUPtr Mesh::CreateCylinder(const float radius, const float height, const float rate){
     std::vector<Vertex> vertices;
     std::vector<uint32_t> indices;
     const uint32_t numSlices = 50;
@@ -106,9 +106,10 @@ MeshUPtr Mesh::CreateCylinder(const float radius, const float height){
     glm::vec3 topCenter = glm::vec3(0.0f, height / 2.0f, 0.0f);
     vertices.push_back(Vertex{topCenter, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)});
     float angleIncrement = glm::two_pi<float>() / numSlices;
+    float topRadius = radius * rate;
     for (int i = 0; i < numSlices; i++) {
         float angle = angleIncrement * i;
-        glm::vec3 pos = glm::vec3(glm::cos(angle) * radius, height / 2.0f, glm::sin(angle) * radius);
+        glm::vec3 pos = glm::vec3(glm::cos(angle) * topRadius, height / 2.0f, glm::sin(angle) * topRadius);
         vertices.push_back(Vertex{pos, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)});
     }
 
@@ -124,7 +125,7 @@ MeshUPtr Mesh::CreateCylinder(const float radius, const float height){
     // Create the side vertices.
     for (int i = 0; i <= numSlices; i++) {
         float angle = angleIncrement * i;
-        glm::vec3 posTop = glm::vec3(glm::cos(angle) * radius, height / 2.0f, glm::sin(angle) * radius);
+        glm::vec3 posTop = glm::vec3(glm::cos(angle) * topRadius, height / 2.0f, glm::sin(angle) * topRadius);
         glm::vec3 posBottom = glm::vec3(glm::cos(angle) * radius, -height / 2.0f, glm::sin(angle) * radius);
         vertices.push_back(Vertex{posTop, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)});
         vertices.push_back(Vertex{posBottom, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)});

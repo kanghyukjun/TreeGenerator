@@ -29,12 +29,13 @@ public:
 
     void DrawScene(const glm::mat4& projection, const glm::mat4& view, const Program* program);
     void DrawTree(const glm::mat4& projection, const glm::mat4& view, const Program* program);
-    void DrawLeaves(const glm::mat4& projection, const glm::mat4& view,
-        const glm::mat4 modelTransform, const Program* program, char direction);
+    // void DrawLeaves(const glm::mat4& projection, const glm::mat4& view,
+    //     const glm::mat4 modelTransform, const Program* program, char direction);
     void DrawCylinder(const glm::mat4& projection, const glm::mat4 view,
         const glm::mat4 modelTransform, const Program* program);
     
     std::string MakeCodes();
+    void MakeMatrices();
 
 private:
     Context(){}
@@ -91,12 +92,6 @@ private:
     ProgramUPtr m_skyboxProgram;
     ProgramUPtr m_envMapProgram;
 
-    TexturePtr m_grassTexture;
-    ProgramUPtr m_grassProgram;
-    std::vector<glm::vec3> m_grassPos;
-    BufferUPtr m_grassPosBuffer;
-    VertexLayoutUPtr m_grassInstance;
-
     // shadow map
     ShadowMapUPtr m_shadowMap;
     ProgramUPtr m_lightingShadowProgram;
@@ -104,21 +99,38 @@ private:
     // cylinder length;
     float m_cylinderRadius { 0.1f };
     float m_cylinderHeight { 1.0f };
-    float m_leafRadius { 0.4f };
-    float m_leafHeight { 0.8f };
+    float m_leafRadius { 0.03f };
+    float m_leafHeight { 0.1f };
+    float m_radiusScaling { 0.75f };
+    float m_heightScaling { 0.75f };
+
+    ProgramUPtr m_cylinderProgram;
+    BufferUPtr m_cylinderPosBuffer;
+    VertexLayoutUPtr m_cylinderInstance;
+    TexturePtr m_brownTexture;
+
+    
 
     // tree
     float m_angle { 30.0f };
     bool m_newCodes { false };
     std::vector<std::string> m_codesVector;
+    std::vector<glm::mat4> m_modelMatrices;
+    std::vector<glm::mat4> m_leafMatrices;
     std::string m_codes { NULL };
-    std::string m_rules { NULL };
-    std::string m_axiom { "FFA" };
     int m_iteration { 3 };
 
+    // tree gui
     float gui_angle { m_angle };
     float gui_radius = { m_cylinderRadius };
     float gui_length = { m_cylinderHeight };
+    char gui_axiom[1024] = { "FFA" }; 
+    char gui_rules[1024 * 4] = {
+        "A=F[--&&&FC][++&&&FC][--^FC][++^FC]\n"
+        "C=F[--<&&FC]||[++>&&FC]||[+<^^FC]||[->^^FC]" };
+
+    std::string m_axiom { gui_axiom };
+    std::string m_rules { gui_rules };
 
     int m_width { WINDOW_WIDTH };
     int m_height { WINDOW_HEIGHT };

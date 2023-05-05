@@ -11,6 +11,7 @@ public:
     MatrixStack();
     void pushMatrix(const glm::mat4 matrix);
     void popMatrix();
+    bool isEmpty();
     glm::mat4 getCurrentMatrix();
 
 private:
