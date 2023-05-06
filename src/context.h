@@ -114,6 +114,7 @@ private:
     // tree
     float m_angle { 30.0f };
     bool m_newCodes { false };
+    bool m_stochastic { false };
     std::vector<std::string> m_codesVector;
     std::vector<glm::mat4> m_modelMatrices;
     std::vector<glm::mat4> m_leafMatrices;

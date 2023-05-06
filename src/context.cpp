@@ -78,18 +78,52 @@ void Context::Reshape(int width, int height) {
 
 std::string Context::MakeCodes() {
     std::string result = gui_axiom;
-    std::string tmp;
-    for(int i=0; i<m_codesVector.size(); i++){
-        tmp = m_codesVector.at(i);
-        std::size_t pos = tmp.rfind('=');
 
-        std::string condition = tmp.substr(0, pos);
-        std::string replace = tmp.substr(pos + 1);
-        
-        for(int i=0; i<m_iteration; i++)
-            result = std::regex_replace(result, std::regex(condition), replace);
+    if(m_stochastic) {
+        std::string new_str;
+        std::default_random_engine rng(std::random_device{}());
+        for (int i = 0; i < m_codesVector.size(); i += 2) {
+            std::string tmp1 = m_codesVector.at(i);
+            std::string tmp2 = m_codesVector.at(i + 1);
+
+            std::size_t pos1 = tmp1.rfind('=');
+            std::size_t pos2 = tmp2.rfind('=');
+
+            std::string condition1 = tmp1.substr(0, pos1);
+            std::string replace1 = tmp1.substr(pos1 + 1);
+            std::string condition2 = tmp2.substr(0, pos2);
+            std::string replace2 = tmp2.substr(pos2 + 1);
+
+            std::uniform_real_distribution<double> dist(0.0, 1.0);
+            for(int j = 0; j < m_iteration; j++) {
+                size_t pos = 0;
+                while ((pos = result.find(condition1, pos)) != std::string::npos) {
+                    double prob = dist(rng);
+                    if (prob < 0.5) {
+                        new_str = replace1;
+                    } else {
+                        new_str = replace2;
+                    }
+                    result.replace(pos, condition1.length(), new_str);
+                    pos += new_str.length();
+                }
+            }
+        }
     }
+    else {
+        std::string tmp;
+        for(int i=0; i<m_codesVector.size(); i++){
+            tmp = m_codesVector.at(i);
+            std::size_t pos = tmp.rfind('=');
 
+            std::string condition = tmp.substr(0, pos);
+            std::string replace = tmp.substr(pos + 1);
+            
+            // 이 부분에서 한번 iteration이 돌아갈 때마다 무작위로 문자 치환을 하고싶음
+            for(int j=0; j<m_iteration; j++)
+                result = std::regex_replace(result, std::regex(condition), replace);
+        }
+    }
     // SPDLOG_INFO("string: {}", result);
     return result;
 }
@@ -161,9 +195,9 @@ void Context::MakeMatrices() {
     
     std::random_device rd;
     std::mt19937 gen(rd());
-    std::normal_distribution<float> normalDist1(0.0f, 4.0f);
-    std::normal_distribution<float> normalDist2(0.0f, 1.0f);
-    std::uniform_real_distribution<float> uniformDist(0.7f, 0.8f);
+    std::normal_distribution<float> normalDist1(0.0f, 2.0f);
+    std::normal_distribution<float> normalDist2(0.0f, 0.5f);
+    std::uniform_real_distribution<float> uniformDist(m_heightScaling - 0.05f, m_heightScaling + 0.05f);
 
     // 나뭇가지를 생성하는 위치를 결정하는 코드
     MatrixStack stack; // 행렬 연산을 위한 스택
@@ -208,7 +242,6 @@ void Context::MakeMatrices() {
     glm::mat4 goFront = glm::scale(glm::mat4(1.0f), glm::vec3(m_radiusScaling, m_heightScaling, m_radiusScaling)) *
         glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, m_cylinderHeight * (m_heightScaling + 1.0f) / 2.2f, 0.0f));
 
-    // instancing
     int randomNum;
     std::vector<glm::mat4> modelMatrices;
 
@@ -237,8 +270,6 @@ void Context::MakeMatrices() {
 
             stack.pushMatrix(goFront); // 방향
             modelMatrices.push_back(stack.getCurrentMatrix());
-
-            // m_heightScaling = uniformDist(gen);
 
             scalingTop = scalingCount.top();
             scalingTop+=1;
@@ -370,11 +401,6 @@ bool Context::Init(){
     m_planeMaterial->specular = grayTexture;
     m_planeMaterial->shininess = 4.0f;
 
-    // m_box1Material = Material::Create();
-    // m_box1Material->diffuse = Texture::CreateFromImage(Image::Load("./image/container.jpg").get());
-    // m_box1Material->specular = darkGrayTexture;
-    // m_box1Material->shininess = 16.0f;
-
     m_branchMaterial = Material::Create();
     m_branchMaterial->diffuse = m_brownTexture;
     m_branchMaterial->specular = m_brownTexture;
@@ -415,11 +441,13 @@ bool Context::Init(){
 
 // Main의 while문에서 반복
 void Context::Render() {
-    if(ImGui::Begin("UI window")) {
-        if(ImGui::ColorEdit4("clear color", glm::value_ptr(m_clearColor))){
+    if (ImGui::Begin("UI window"))
+    {
+        ImGui::BeginChild("child1", ImVec2(0, 0), true);
+        if(ImGui::ColorEdit4("clear color", glm::value_ptr(m_clearColor)))
+        {
             glClearColor(m_clearColor.x, m_clearColor.y, m_clearColor.z, m_clearColor.w);
         }
-        // ImGui::DragFloat("gamma", &m_gamma, 0.01f, 0.0f, 2.0f);
         ImGui::Separator();
         ImGui::DragFloat3("camera pos", glm::value_ptr(m_cameraPos), 0.01f);
         ImGui::DragFloat("camera yaw",&m_cameraYaw, 0.05f);
@@ -442,10 +470,12 @@ void Context::Render() {
             ImGui::ColorEdit3("l.specular", glm::value_ptr(m_light.specular));
             ImGui::Checkbox("1. blinn", &m_blinn);
         }
+        ImGui::EndChild();
+        ImGui::End();
     }
-    ImGui::End();
 
     if(ImGui::Begin("Tree")){
+        ImGui::BeginChild("child2", ImVec2(0, 0), true);
         ImGui::DragFloat("angle", &gui_angle, 0.1f, 20.0f, 70.0f);
         ImGui::DragFloat("radius", &gui_radius, 0.005f, 0.05f, 0.3f);
         ImGui::DragFloat("length", &gui_length, 0.03f, 0.3f, 2.0f);
@@ -454,8 +484,17 @@ void Context::Render() {
         ImGui::InputText("axiom", gui_axiom, sizeof(gui_axiom));
         ImGui::Text("\nrules");
         ImGui::InputTextMultiline("##rules", gui_rules, IM_ARRAYSIZE(gui_rules),
-            ImVec2(-FLT_MIN, ImGui::GetTextLineHeight() * 3), ImGuiInputTextFlags_AllowTabInput);
+            ImVec2(-FLT_MIN, ImGui::GetTextLineHeight() * 5), ImGuiInputTextFlags_AllowTabInput);
         ImGui::Separator();
+        ImGui::Checkbox("stochastic", &m_stochastic); // stochastic
+        if(m_stochastic) {
+            // strcpy_s(gui_axiom, sizeof(gui_axiom), m_axiom.c_str());
+            strcpy_s(gui_rules, sizeof(gui_rules),
+                "A=F[--&&&FFC][++&&&FC][--^FC][++^FFC]\n"\
+                "A=F[--&&&FC][++&&&FFC][--^FFC][++^FC]\n"\
+                "C=F[--<&&FC]||[++>&&FFC]||[+<^^FC]||[->^^FFC]\n"\
+                "C=F[--<&&FFC]||[++>&&FC]||[+<^^FFC]||[->^^FC]");
+        }
         if(ImGui::Button("Draw")){
             m_newCodes = true;
             m_angle = gui_angle;
@@ -467,11 +506,14 @@ void Context::Render() {
             strcpy_s(gui_axiom, sizeof(gui_axiom), m_axiom.c_str());
             strcpy_s(gui_rules, sizeof(gui_rules), m_rules.c_str());
         }
+        ImGui::BeginChild("child3", ImVec2(0, 0), true);
         if (ImGui::CollapsingHeader("string", ImGuiTreeNodeFlags_DefaultOpen)){
             ImGui::TextWrapped("%s",m_codes.c_str());
         }
+        ImGui::EndChild();
+        ImGui::EndChild();
+        ImGui::End();
     }
-    ImGui::End();
 
     auto lightView = glm::lookAt(m_light.position,
         m_light.position + m_light.direction, glm::vec3(0.0f, 1.0f, 0.0f));
@@ -485,13 +527,13 @@ void Context::Render() {
     if(m_newCodes){
         // 규칙에 의해 새로운 코드를 생성하는 코드
         m_codesVector.clear();
-        // m_codesVector.push_back("A=F[--&&&FC][++&&&FC][--^FC][++^FC]");
-        // m_codesVector.push_back("C=F[--<&&FC]||[++>&&FC]||[+<^^FC]||[->^^FC]");
+
         std::istringstream ss(gui_rules);
         std::string token;
         while (std::getline(ss, token, '\n')) {
             m_codesVector.push_back(token);
         }
+
         m_codes = MakeCodes();
         m_cylinderHeight *= 1.2f;
         m_cylinderRadius *= 1.3f;
