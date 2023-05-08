@@ -28,7 +28,7 @@ public:
     void MouseButton(int button, int action, double x, double y);
 
     void DrawScene(const glm::mat4& projection, const glm::mat4& view, const Program* program);
-    void DrawTree(const glm::mat4& projection, const glm::mat4& view, const Program* program);
+    void DrawTree(const glm::mat4& projection, const glm::mat4& view, const Program* treeProgram, const Program* leafProgram);
     // void DrawLeaves(const glm::mat4& projection, const glm::mat4& view,
     //     const glm::mat4 modelTransform, const Program* program, char direction);
     void DrawCylinder(const glm::mat4& projection, const glm::mat4 view,
@@ -107,9 +107,12 @@ private:
     ProgramUPtr m_cylinderProgram;
     BufferUPtr m_cylinderPosBuffer;
     VertexLayoutUPtr m_cylinderInstance;
-    TexturePtr m_brownTexture;
-
+    TexturePtr m_cylinderTexture;
     
+    ProgramUPtr m_leafProgram;
+    BufferUPtr m_leafPosBuffer;
+    VertexLayoutUPtr m_leafInstance;
+    TexturePtr m_leafTexture;
 
     // tree
     float m_angle { 30.0f };
