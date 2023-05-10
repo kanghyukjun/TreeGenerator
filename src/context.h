@@ -99,7 +99,7 @@ private:
     // cylinder length;
     float m_cylinderRadius { 0.1f };
     float m_cylinderHeight { 1.0f };
-    float m_leafRadius { 0.03f };
+    float m_leafRadius { 0.1f };
     float m_leafHeight { 0.1f };
     float m_radiusScaling { 0.75f };
     float m_heightScaling { 0.75f };

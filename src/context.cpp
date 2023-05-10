@@ -133,9 +133,12 @@ void Context::MakeMatrices() {
     // 나뭇잎을 생성하는 위치를 결정하는 벡터
     std::vector<glm::mat4> leafMatrices;
     float randomAngle = 0.0f;
+    glm::mat4 scalingInverse;
     auto drawLeaves = [&](glm::mat4 matrices, glm::mat4 scaling, char direction)-> void {
-        double trigonTranslate = sin(randomAngle * M_PI / 180.0f) * (m_leafHeight / 2.0f);
-        double trigonDown = (-1.0f) * cos(randomAngle * M_PI / 180.0f) * (2.0f * m_leafRadius);
+
+        double trigonTranslate = m_heightScaling * sin(randomAngle * M_PI / 180.0f) * (m_leafHeight / 2.0f);
+        double trigonDown = (-1.0f) * (cos(randomAngle * M_PI / 180.0f) * (2.0f * m_leafRadius)
+            + (1.0f - m_heightScaling) / 2.0f * m_leafHeight);
 
         glm::mat4 rotateYMinus = 
             glm::rotate(glm::mat4(1.0f), glm::radians(-1.0f * randomAngle), glm::vec3(0.0f, 1.0f, 0.0f));
@@ -160,6 +163,10 @@ void Context::MakeMatrices() {
 
         glm::mat4 rotate;
         switch(direction){
+        case 'F': case 'X': case 'A': case 'C':
+            rotate = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, trigonDown, 0.0f));
+            break;
+
         case '+':
             rotate = rotateYPlus;
             break;
@@ -208,7 +215,6 @@ void Context::MakeMatrices() {
 
     MatrixStack scalingStack; // 나뭇잎 크기 계산을 위함
     std::stack<int> scalingCount;
-    glm::mat4 scalingInverse;
 
     stack.pushMatrix(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, m_cylinderHeight/1.7f, 0.0f)));
     stackCount.push(0);
@@ -238,10 +244,8 @@ void Context::MakeMatrices() {
         randomAngle = normalDistAngle(gen);
         switch(m_codes.at(i)){
         case 'F': case 'X': case 'A': case 'C':
-            matrixTop = stackCount.top();
-            matrixTop+=1;
-            stackCount.pop();
-            stackCount.push(matrixTop);
+            matrixFunction();
+            direction.push('F');
 
             stack.pushMatrix(glm::scale(glm::mat4(1.0f), glm::vec3(m_radiusScaling, m_heightScaling, m_radiusScaling)) *
                 glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, m_cylinderHeight * (m_heightScaling + 1.0f) / 2.2f, 0.0f))); // 방향
@@ -367,7 +371,7 @@ bool Context::Init(){
     m_cylinderProgram = Program::Create("./shader/cylinder.vs", "./shader/cylinder.fs");
     if(!m_cylinderProgram) return false;
 
-    m_leafTexture = Texture::CreateFromImage(Image::Load("./image/leaf.png").get());
+    m_leafTexture = Texture::CreateFromImage(Image::Load("./image/leaf2.png").get());
     m_leafProgram = Program::Create("./shader/leaf.vs", "./shader/leaf.fs");
     if(!m_leafProgram) return false;
 
@@ -430,11 +434,30 @@ bool Context::Init(){
 
 // Main의 while문에서 반복
 void Context::Render() {
-    if (ImGui::Begin("UI window"))
-    {
+    if (ImGui::BeginMainMenuBar()) {
+        if(ImGui::BeginMenu("Exit")) {
+            if(ImGui::MenuItem("Exit", "Alt+F4")) {
+                // glfwSetWindowShouldClose(reinterpret_cast<GLFWwindow*>(this), true);
+            }
+            ImGui::EndMenu();
+        }
+        if(ImGui::BeginMenu("File")) {
+            if(ImGui::MenuItem("Open", "Ctrl+0")) {
+                
+
+            }
+            if(ImGui::MenuItem("Save", "Ctrl+S")) {
+
+
+            }
+            ImGui::EndMenu();
+        }
+        ImGui::EndMainMenuBar();
+    }
+
+    if (ImGui::Begin("UI window")) {
         ImGui::BeginChild("child1", ImVec2(0, 0), true);
-        if(ImGui::ColorEdit4("clear color", glm::value_ptr(m_clearColor)))
-        {
+        if(ImGui::ColorEdit4("clear color", glm::value_ptr(m_clearColor))) {
             glClearColor(m_clearColor.x, m_clearColor.y, m_clearColor.z, m_clearColor.w);
         }
         ImGui::Separator();
@@ -442,7 +465,7 @@ void Context::Render() {
         ImGui::DragFloat("camera yaw",&m_cameraYaw, 0.05f);
         ImGui::DragFloat("camera pitch",&m_cameraPitch, 0.05f, -89.0f, 89.0f);
         ImGui::Separator();
-        if(ImGui::Button("reset camera")){
+        if(ImGui::Button("reset camera")) {
             m_cameraPitch = -14.0f;
             m_cameraYaw = 0.0f;
             m_cameraPos = glm::vec3(0.0f, 4.0f, 12.0f);
@@ -463,9 +486,9 @@ void Context::Render() {
         ImGui::End();
     }
 
-    if(ImGui::Begin("Tree")){
+    if(ImGui::Begin("Tree")) {
         ImGui::BeginChild("child2", ImVec2(0, 0), true);
-        ImGui::DragFloat("angle", &gui_angle, 0.1f, 20.0f, 70.0f);
+        ImGui::DragFloat("angle", &gui_angle, 0.1f, 20.0f, 30.0f);
         ImGui::DragFloat("radius", &gui_radius, 0.005f, 0.05f, 0.3f);
         ImGui::DragFloat("length", &gui_length, 0.03f, 0.3f, 2.0f);
         ImGui::DragInt("iteration", &m_iteration, 0.05f, 0, 4);
@@ -484,20 +507,20 @@ void Context::Render() {
                 "C=FF[--<&&FC]||[++>&&FFC]||[+<^^FC]||[->^^FFC]\n"\
                 "C=F[--<&&FFC]||[++>&&FC]||[+<^^FFC]||[->^^FC]");
         }
-        if(ImGui::Button("Clear")){
+        if(ImGui::Button("Clear")) {
             m_stochastic = false;
             m_codes = "";
             strcpy_s(gui_axiom, sizeof(gui_axiom), m_axiom.c_str());
             strcpy_s(gui_rules, sizeof(gui_rules), m_rules.c_str());
         }
-        if(ImGui::Button("Draw")){
+        if(ImGui::Button("Draw")) {
             m_newCodes = true;
             m_angle = gui_angle;
             m_cylinderRadius = gui_radius;
             m_cylinderHeight = gui_length;
         }
         ImGui::BeginChild("child3", ImVec2(0, 0), true);
-        if (ImGui::CollapsingHeader("string", ImGuiTreeNodeFlags_DefaultOpen)){
+        if (ImGui::CollapsingHeader("string", ImGuiTreeNodeFlags_DefaultOpen)) {
             ImGui::TextWrapped("%s",m_codes.c_str());
         }
         ImGui::EndChild();
@@ -512,7 +535,7 @@ void Context::Render() {
         glm::perspective(glm::radians((m_light.cutoff[0] + m_light.cutoff[1]) * 2.0f), 1.0f, 1.0f, 20.0f);
 
     m_cylinder = Mesh::CreateCylinder(m_cylinderRadius, m_cylinderHeight, m_radiusScaling);
-    m_leaf = Mesh::CreateCylinder(m_leafRadius, m_leafHeight);
+    m_leaf = Mesh::CreateLeaf(m_leafRadius, m_leafHeight);
 
     if(m_newCodes){
         // 규칙에 의해 새로운 코드를 생성하는 코드
@@ -611,6 +634,7 @@ void Context::Render() {
 // 회전 후 이동 -> 이동행렬 * 회전행렬 (순서)
 void Context::DrawTree(const glm::mat4& projection, const glm::mat4& view, const Program* treeProgram, const Program* leafProgram) {
     if(!m_codes.empty()){
+        glEnable(GL_BLEND);
         treeProgram->Use();
         treeProgram->SetUniform("tex", 0);
         m_cylinderTexture->Bind();
@@ -625,7 +649,9 @@ void Context::DrawTree(const glm::mat4& projection, const glm::mat4& view, const
         } 
 
         leafProgram->Use();
-        m_leafMaterial->SetToProgram(leafProgram);
+        leafProgram->SetUniform("tex", 0);
+        m_leafTexture->Bind();
+        // m_leafMaterial->SetToProgram(leafProgram);
         for(int i=0; i<m_leafMatrices.size(); i++){
             leafProgram->SetUniform("transform", projection * view * m_leafMatrices[i]);
             leafProgram->SetUniform("color", glm::vec3(0.2f, 0.6f, 0.2f));

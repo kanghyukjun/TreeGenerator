@@ -185,14 +185,20 @@ MeshUPtr Mesh::CreateCylinder(const float radius, const float height, const floa
 
 MeshUPtr Mesh::CreateLeaf(float width, float height) {
     std::vector<Vertex> vertices = {
-        Vertex { glm::vec3(-0.5f, -0.5f, 0.0f), glm::vec3( 0.0f,  0.0f, 1.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f) },
-        Vertex { glm::vec3( 0.5f, -0.5f, 0.0f), glm::vec3( 0.0f,  0.0f, 1.0f), glm::vec2(1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f) },
-        Vertex { glm::vec3( 0.5f,  0.5f, 0.0f), glm::vec3( 0.0f,  0.0f, 1.0f), glm::vec2(1.0f, 1.0f), glm::vec3(0.0f, 0.0f, 0.0f) },
-        Vertex { glm::vec3(-0.5f,  0.5f, 0.0f), glm::vec3( 0.0f,  0.0f, 1.0f), glm::vec2(0.0f, 1.0f), glm::vec3(0.0f, 0.0f, 0.0f) },
+        Vertex { glm::vec3( 0.0f,  height / -2.0f, width / 2.0f), glm::vec3( 1.0f,  0.0f, 0.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f) },
+        Vertex { glm::vec3( 0.0f,  height / -2.0f, width / -2.0f), glm::vec3( 1.0f,  0.0f, 0.0f), glm::vec2(1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f) },
+        Vertex { glm::vec3( 0.0f,  height / 2.0f, width / -2.0f), glm::vec3( 1.0f,  0.0f, 0.0f), glm::vec2(1.0f, 1.0f), glm::vec3(0.0f, 0.0f, 0.0f) },
+        Vertex { glm::vec3( 0.0f,  height / 2.0f, width / 2.0f), glm::vec3( 1.0f,  0.0f, 0.0f), glm::vec2(0.0f, 1.0f), glm::vec3(0.0f, 0.0f, 0.0f) },
+
+        Vertex { glm::vec3( 0.0f,  height / -2.0f, width / 2.0f), glm::vec3( -1.0f,  0.0f, 0.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f) },
+        Vertex { glm::vec3( 0.0f,  height / -2.0f, width / -2.0f), glm::vec3( -1.0f,  0.0f, 0.0f), glm::vec2(1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f) },
+        Vertex { glm::vec3( 0.0f,  height / 2.0f, width / -2.0f), glm::vec3( -1.0f,  0.0f, 0.0f), glm::vec2(1.0f, 1.0f), glm::vec3(0.0f, 0.0f, 0.0f) },
+        Vertex { glm::vec3( 0.0f,  height / 2.0f, width / 2.0f), glm::vec3( -1.0f,  0.0f, 0.0f), glm::vec2(0.0f, 1.0f), glm::vec3(0.0f, 0.0f, 0.0f) },
     };
 
     std::vector<uint32_t> indices = {
-        0,  1,  2,  2,  3,  0,
+        0, 1, 2, 2, 3, 0,
+        4, 7, 5, 5, 7, 6
     };
 
     return Create(vertices, indices, GL_TRIANGLES);
