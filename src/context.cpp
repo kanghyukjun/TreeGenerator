@@ -435,21 +435,11 @@ bool Context::Init(){
 // Main의 while문에서 반복
 void Context::Render() {
     if (ImGui::BeginMainMenuBar()) {
-        if(ImGui::BeginMenu("Exit")) {
-            if(ImGui::MenuItem("Exit", "Alt+F4")) {
-                // glfwSetWindowShouldClose(reinterpret_cast<GLFWwindow*>(this), true);
-            }
-            ImGui::EndMenu();
-        }
         if(ImGui::BeginMenu("File")) {
             if(ImGui::MenuItem("Open", "Ctrl+0")) {
-                
 
             }
-            if(ImGui::MenuItem("Save", "Ctrl+S")) {
-
-
-            }
+            if(ImGui::MenuItem("Save", "Ctrl+S")) { };
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();

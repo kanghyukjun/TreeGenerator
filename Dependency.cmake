@@ -90,7 +90,7 @@ ExternalProject_Add(
     )
 set(DEP_LIST ${DEP_LIST} dep_glm)
 
-# imgui
+# imgui 1.82
 add_library(imgui
     imgui/imgui_draw.cpp
     imgui/imgui_tables.cpp
@@ -104,6 +104,16 @@ add_dependencies(imgui ${DEP_LIST})
 set(DEP_INCLUDE_DIR ${DEP_INCLUDE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/imgui)
 set(DEP_LIST ${DEP_LIST} imgui)
 set(DEP_LIBS ${DEP_LIBS} imgui)
+
+#ImFileDialog
+# add_library(ImFileDialog
+#     ImFileDialog/ImFileDialog.cpp
+#     )
+# target_include_directories(ImFileDialog PRIVATE ${DEP_INCLUDE_DIR})
+# add_dependencies(ImFileDialog ${DEP_LIST})
+# set(DEP_INCLUDE_DIR ${DEP_INCLUDE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/ImFileDialog)
+# set(DEP_LIST ${DEP_LIST} ImFileDialog)
+# set(DEP_LIBS ${DEP_LIBS} ImFileDialog)
 
 # assimp
 ExternalProject_Add(
