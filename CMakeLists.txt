@@ -23,6 +23,7 @@ add_executable(${PROJECT_NAME}
     src/framebuffer.cpp src/framebuffer.h
     src/shadow_map.cpp src/shadow_map.h
     src/matrix_stack.cpp src/matrix_stack.h
+    src/imfilebrowser.h
     )
 
 include(Dependency.cmake)

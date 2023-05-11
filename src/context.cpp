@@ -1,7 +1,6 @@
 ﻿#include "context.h"
 #include "image.h"
 #include "glm/gtx/string_cast.hpp"
-#include <imgui.h>
 #include <regex>
 #include <thread>
 #include <cstdlib>
@@ -437,12 +436,27 @@ void Context::Render() {
     if (ImGui::BeginMainMenuBar()) {
         if(ImGui::BeginMenu("File")) {
             if(ImGui::MenuItem("Open", "Ctrl+0")) {
-
+                m_fileDialogOpen.SetTitle("Select *.obj");
+                m_fileDialogOpen.SetTypeFilters({ ".obj"});
+                m_fileDialogOpen.Open();
             }
-            if(ImGui::MenuItem("Save", "Ctrl+S")) { };
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();
+    }
+    m_fileDialogOpen.Display();
+    if(m_fileDialogOpen.HasSelected())
+    {
+        SPDLOG_INFO("fileDialog.GetSelected().string() : {}", m_fileDialogOpen.GetSelected().string());
+        
+
+        // std::string tmp1 = m_codesVector.at(i);
+        // std::size_t pos1 = tmp1.rfind('=');
+        // std::string condition1 = tmp1.substr(0, pos1);
+        // std::string replace1 = tmp1.substr(pos1 + 1);
+
+
+        m_fileDialogOpen.ClearSelected();
     }
 
     if (ImGui::Begin("UI window")) {

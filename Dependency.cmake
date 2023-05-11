@@ -105,6 +105,10 @@ set(DEP_INCLUDE_DIR ${DEP_INCLUDE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/imgui)
 set(DEP_LIST ${DEP_LIST} imgui)
 set(DEP_LIBS ${DEP_LIBS} imgui)
 
+#imfile-browser-master
+# add_library(imgui-filebrowser-master INTERFACE)
+# target_include_directories(imgui-filebrowser-master INTERFACE ${DEP_INCLUDE_DIR})
+
 #ImFileDialog
 # add_library(ImFileDialog
 #     ImFileDialog/ImFileDialog.cpp

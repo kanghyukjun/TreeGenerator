@@ -14,6 +14,8 @@
 #include "matrix_stack.h"
 #define _USE_MATH_DEFINES
 #include <math.h>
+#include <imgui.h>
+#include "imfilebrowser.h"
 #include <string>
 #include <vector>
 
@@ -135,6 +137,11 @@ private:
 
     std::string m_axiom { gui_axiom };
     std::string m_rules { gui_rules };
+
+    ImGui::FileBrowser m_fileDialogOpen;
+    ImGui::FileBrowser m_fileDialogSave;
+    ModelUPtr m_model;
+    TexturePtr m_modelTexture;
 
     int m_width { WINDOW_WIDTH };
     int m_height { WINDOW_HEIGHT };
