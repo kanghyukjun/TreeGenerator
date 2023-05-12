@@ -55,6 +55,16 @@ void OnScroll(GLFWwindow* window, double xoffset, double yoffset) {
     ImGui_ImplGlfw_ScrollCallback(window, xoffset, yoffset);
 }
 
+void OnWindowIconify(GLFWwindow* window, int iconified) {
+	glfwSetWindowSize(window, WINDOW_WIDTH, WINDOW_HEIGHT); // 윈도우 크기 고정
+    if (iconified) {
+        glfwHideWindow(window); // 윈도우 숨김
+    }
+    else {
+        glfwShowWindow(window); // 윈도우 표시
+    }
+}
+
 int main(int argc, const char** argv){
     SPDLOG_INFO("Start Program");
 
@@ -113,13 +123,14 @@ int main(int argc, const char** argv){
 	OnFramebufferSizeChange(window, WINDOW_WIDTH, WINDOW_HEIGHT);
 
 	// 콜백함수 등록
+	// glfwSetWindowIconifyCallback(window, OnWindowIconify);
 	glfwSetFramebufferSizeCallback(window, OnFramebufferSizeChange);
 	glfwSetKeyCallback(window, OnKeyEvent);
 	glfwSetCharCallback(window, OnCharEvent);
 	glfwSetCursorPosCallback(window, OnCursorPos);
 	glfwSetMouseButtonCallback(window, OnMouseButton);
 	glfwSetScrollCallback(window, OnScroll);
-	
+
 	// glfw 루프 실행, 윈도우 close 버튼을 누르면 정상 종료
 	SPDLOG_INFO("Start main loop");
 	while (!glfwWindowShouldClose(window)) {

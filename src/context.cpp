@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <random>
 #include <sstream>
+#include <filesystem>
 
 ContextUPtr Context::Create(){
     auto context = ContextUPtr(new Context());
@@ -347,6 +348,45 @@ void Context::MakeMatrices() {
     m_leafMatrices = leafMatrices;
 }
 
+void Context::Clear() {
+    m_stochastic = false;
+    m_codes = "";
+    strcpy_s(gui_axiom, sizeof(gui_axiom), m_axiom.c_str());
+    strcpy_s(gui_rules, sizeof(gui_rules), m_rules.c_str());
+}
+
+void Context::OpenObject(ImGui::FileBrowser file) {
+    m_model.reset();
+    std::string selected = file.GetSelected().string();
+    std::size_t pos = selected.rfind('.');
+    std::string tex = selected.substr(0,pos);
+
+    SPDLOG_INFO("file location : {}", selected);
+    m_model = Model::Load(selected);
+    if(!m_model) {
+        // 모델이 생성되지 않았을 때 처리하는 코드
+        SPDLOG_ERROR("failed to open obj : {}", selected);
+        m_model.reset();
+        return;
+    }
+
+    m_floor = false;
+    // 동일한 이름의 텍스쳐 파일이 있을 경우 텍스쳐 지정
+    if(std::filesystem::exists(tex+".png")) {
+        tex+=".png";
+        m_modelTexture = Texture::CreateFromImage(Image::Load(tex).get());
+    }
+    else if(std::filesystem::exists(tex+".jpg")) {
+        tex+=".jpg";
+        m_modelTexture = Texture::CreateFromImage(Image::Load(tex).get());
+    }
+    else {
+        m_modelTexture = Texture::CreateFromImage(Image::CreateSingleColorImage(4, 4, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f)).get());
+    }
+
+    Clear();
+}
+
 bool Context::Init(){
     glEnable(GL_MULTISAMPLE);
     m_box = Mesh::CreateBox();
@@ -374,6 +414,9 @@ bool Context::Init(){
     m_leafProgram = Program::Create("./shader/leaf.vs", "./shader/leaf.fs");
     if(!m_leafProgram) return false;
 
+    m_objProgram = Program::Create("./shader/obj.vs", "./shader/obj.fs");
+    if(!m_objProgram) return false;
+
     glClearColor(0.0f, 0.1f, 0.2f, 0.0f);
 
     TexturePtr darkGrayTexture = Texture::CreateFromImage(
@@ -387,6 +430,7 @@ bool Context::Init(){
 
     TexturePtr greenTexture = Texture::CreateFromImage(
         Image::CreateSingleColorImage(4, 4, glm::vec4(0.2f, 0.6f, 0.2f, 1.0f)).get());
+
 
     m_planeMaterial = Material::Create();
     m_planeMaterial->diffuse = Texture::CreateFromImage(Image::Load("./image/marble.jpg").get());
@@ -435,29 +479,34 @@ bool Context::Init(){
 void Context::Render() {
     if (ImGui::BeginMainMenuBar()) {
         if(ImGui::BeginMenu("File")) {
-            if(ImGui::MenuItem("Open", "Ctrl+0")) {
+            if(ImGui::MenuItem("Open", "Ctrl+O")) {
                 m_fileDialogOpen.SetTitle("Select *.obj");
                 m_fileDialogOpen.SetTypeFilters({ ".obj"});
                 m_fileDialogOpen.Open();
+            }
+            if(ImGui::MenuItem("Save", "Ctrl+S")) {
+                m_fileDialogSave.SetTitle("Select Folder");
+                m_fileDialogSave.SetTypeFilters({""});
+                m_fileDialogSave.Open();
             }
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();
     }
+
+    // 만약 사용자가 Open 메뉴를 선택했다면
     m_fileDialogOpen.Display();
-    if(m_fileDialogOpen.HasSelected())
-    {
-        SPDLOG_INFO("fileDialog.GetSelected().string() : {}", m_fileDialogOpen.GetSelected().string());
-        
-
-        // std::string tmp1 = m_codesVector.at(i);
-        // std::size_t pos1 = tmp1.rfind('=');
-        // std::string condition1 = tmp1.substr(0, pos1);
-        // std::string replace1 = tmp1.substr(pos1 + 1);
-
-
-        m_fileDialogOpen.ClearSelected();
+    if(m_fileDialogOpen.HasSelected()) {
+        OpenObject(m_fileDialogOpen);
     }
+    m_fileDialogOpen.ClearSelected();
+
+    // 만약 사용자가 Save 메뉴를 선택했다면
+    m_fileDialogSave.Display();
+    if(m_fileDialogSave.HasSelected()) {
+        SPDLOG_INFO("folder has selected : {}", m_fileDialogSave.GetSelected().string());
+    }
+    m_fileDialogSave.ClearSelected();
 
     if (ImGui::Begin("UI window")) {
         ImGui::BeginChild("child1", ImVec2(0, 0), true);
@@ -476,15 +525,17 @@ void Context::Render() {
         }
         ImGui::Separator();
         if (ImGui::CollapsingHeader("light", ImGuiTreeNodeFlags_DefaultOpen)) {
-            ImGui::Checkbox("l.directional", &m_light.directional);
-            ImGui::DragFloat3("l.position", glm::value_ptr(m_light.position), 0.01f);
-            ImGui::DragFloat3("l.direction", glm::value_ptr(m_light.direction), 0.01f);
-            ImGui::DragFloat2("1.cutoff", glm::value_ptr(m_light.cutoff), 0.5f, 0.0f, 180.0f);
-            ImGui::DragFloat("1.distance", &m_light.distance, 0.5f, 0.0f, 3000.0f);
-            ImGui::ColorEdit3("l.ambient", glm::value_ptr(m_light.ambient));
-            ImGui::ColorEdit3("l.diffuse", glm::value_ptr(m_light.diffuse));
-            ImGui::ColorEdit3("l.specular", glm::value_ptr(m_light.specular));
-            ImGui::Checkbox("1. blinn", &m_blinn);
+            ImGui::Checkbox("directional", &m_light.directional);
+            ImGui::DragFloat3("position", glm::value_ptr(m_light.position), 0.01f);
+            ImGui::DragFloat3("direction", glm::value_ptr(m_light.direction), 0.01f);
+            ImGui::DragFloat2("cutoff", glm::value_ptr(m_light.cutoff), 0.5f, 0.0f, 180.0f);
+            ImGui::DragFloat("distance", &m_light.distance, 0.5f, 0.0f, 3000.0f);
+            ImGui::ColorEdit3("ambient", glm::value_ptr(m_light.ambient));
+            ImGui::ColorEdit3("diffuse", glm::value_ptr(m_light.diffuse));
+            ImGui::ColorEdit3("specular", glm::value_ptr(m_light.specular));
+            ImGui::Checkbox("blinn", &m_blinn);
+            ImGui::Checkbox("floor", &m_floor);
+            ImGui::Checkbox("scenery", &m_scenery);
         }
         ImGui::EndChild();
         ImGui::End();
@@ -512,12 +563,13 @@ void Context::Render() {
                 "C=F[--<&&FFC]||[++>&&FC]||[+<^^FFC]||[->^^FC]");
         }
         if(ImGui::Button("Clear")) {
-            m_stochastic = false;
-            m_codes = "";
-            strcpy_s(gui_axiom, sizeof(gui_axiom), m_axiom.c_str());
-            strcpy_s(gui_rules, sizeof(gui_rules), m_rules.c_str());
+            Clear();
+            m_model.reset();
+            m_floor = true;
         }
         if(ImGui::Button("Draw")) {
+            m_model.reset();
+            m_floor = true;
             m_newCodes = true;
             m_angle = gui_angle;
             m_cylinderRadius = gui_radius;
@@ -590,13 +642,15 @@ void Context::Render() {
         m_cameraPos + m_cameraFront,
         m_cameraUp);
     
-    auto skyboxModelTransform =
-        glm::translate(glm::mat4(1.0), m_cameraPos) * glm::scale(glm::mat4(1.0), glm::vec3(50.0f));
-    m_skyboxProgram->Use();
-    m_cubeTexture->Bind();
-    m_skyboxProgram->SetUniform("skybox", 0);
-    m_skyboxProgram->SetUniform("transform", projection * view * skyboxModelTransform);
-    m_box->Draw(m_skyboxProgram.get());
+    if(m_scenery) {
+        auto skyboxModelTransform =
+            glm::translate(glm::mat4(1.0), m_cameraPos) * glm::scale(glm::mat4(1.0), glm::vec3(50.0f));
+        m_skyboxProgram->Use();
+        m_cubeTexture->Bind();
+        m_skyboxProgram->SetUniform("skybox", 0);
+        m_skyboxProgram->SetUniform("transform", projection * view * skyboxModelTransform);
+        m_box->Draw(m_skyboxProgram.get());
+    }
 
     glm::vec3 lightPos = m_light.position;
     glm::vec3 lightDir = m_light.direction;
@@ -633,6 +687,7 @@ void Context::Render() {
 
     DrawScene(projection, view, m_lightingShadowProgram.get());
     DrawTree(projection, view, m_cylinderProgram.get(), m_leafProgram.get());
+    DrawObj(projection, view, m_objProgram.get());
 }
 
 // 회전 후 이동 -> 이동행렬 * 회전행렬 (순서)
@@ -694,20 +749,34 @@ void Context::DrawCylinder(const glm::mat4& projection, const glm::mat4 view,
     auto transform = projection * view * modelTransform * glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -1.0f * m_cylinderHeight, 0.0f));
     program->SetUniform("transform", transform);
     program->SetUniform("modelTransform", glm::mat4(1.0f));
-    m_branchMaterial->SetToProgram(program);
+    // m_branchMaterial->SetToProgram(program);
     m_cylinder->Draw(program);
+}
+
+void Context::DrawObj(const glm::mat4& projection, const glm::mat4& view, const Program* program) {
+    if(m_model) {
+        program->Use();
+        program->SetUniform("tex", 0);
+        m_modelTexture->Bind();
+        auto transform = projection * view;
+        program->SetUniform("transform", transform);
+        program->SetUniform("modelTransform", glm::mat4(1.0f));
+        m_model->Draw(program);
+    }
 }
 
 // context.cpp
 void Context::DrawScene(const glm::mat4& projection, const glm::mat4& view, const Program* program) {
     // 바닥
-    program->Use();
-    auto modelTransform =
-        glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -0.5f, 0.0f)) *
-        glm::scale(glm::mat4(1.0f), glm::vec3(10.0f, 1.0f, 10.0f));
-    auto transform = projection * view * modelTransform;
-    program->SetUniform("transform", transform);
-    program->SetUniform("modelTransform", modelTransform);
-    m_planeMaterial->SetToProgram(program);
-    m_box->Draw(program);
+    if(m_floor){
+        program->Use();
+        auto modelTransform =
+            glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -0.5f, 0.0f)) *
+            glm::scale(glm::mat4(1.0f), glm::vec3(10.0f, 1.0f, 10.0f));
+        auto transform = projection * view * modelTransform;
+        program->SetUniform("transform", transform);
+        program->SetUniform("modelTransform", modelTransform);
+        m_planeMaterial->SetToProgram(program);
+        m_box->Draw(program);
+    }
 }

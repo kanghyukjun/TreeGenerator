@@ -30,14 +30,17 @@ public:
     void MouseButton(int button, int action, double x, double y);
 
     void DrawScene(const glm::mat4& projection, const glm::mat4& view, const Program* program);
+    void DrawObj(const glm::mat4& projection, const glm::mat4& view, const Program* program);
     void DrawTree(const glm::mat4& projection, const glm::mat4& view, const Program* treeProgram, const Program* leafProgram);
     // void DrawLeaves(const glm::mat4& projection, const glm::mat4& view,
     //     const glm::mat4 modelTransform, const Program* program, char direction);
     void DrawCylinder(const glm::mat4& projection, const glm::mat4 view,
         const glm::mat4 modelTransform, const Program* program);
     
+    void Clear();
     std::string MakeCodes();
     void MakeMatrices();
+    void OpenObject(ImGui::FileBrowser file);
 
 private:
     Context(){}
@@ -46,6 +49,7 @@ private:
     ProgramUPtr m_simpleProgram;
     ProgramUPtr m_textureProgram;
     ProgramUPtr m_postProgram;
+    ProgramUPtr m_objProgram;
     float m_gamma { 0.85f };
 
     MeshUPtr m_box;
@@ -75,6 +79,7 @@ private:
     MaterialPtr m_box1Material;
     MaterialPtr m_branchMaterial;
     MaterialPtr m_leafMaterial;
+    MaterialPtr m_objMaterial;
     TexturePtr m_windowTexture;
 
     // camera parameter
@@ -139,9 +144,12 @@ private:
     std::string m_rules { gui_rules };
 
     ImGui::FileBrowser m_fileDialogOpen;
-    ImGui::FileBrowser m_fileDialogSave;
+    ImGui::FileBrowser m_fileDialogSave {ImGuiFileBrowserFlags_SelectDirectory | ImGuiFileBrowserFlags_EnterNewFilename};
     ModelUPtr m_model;
     TexturePtr m_modelTexture;
+
+    bool m_floor { true };
+    bool m_scenery { true };
 
     int m_width { WINDOW_WIDTH };
     int m_height { WINDOW_HEIGHT };
