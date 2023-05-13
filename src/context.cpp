@@ -6,7 +6,10 @@
 #include <cstdlib>
 #include <random>
 #include <sstream>
+#include <iostream>
+#include <fstream>
 #include <filesystem>
+#include <tuple>
 
 ContextUPtr Context::Create(){
     auto context = ContextUPtr(new Context());
@@ -69,8 +72,8 @@ void Context::MouseButton(int button, int action, double x, double y) {
 }
 
 void Context::Reshape(int width, int height) {
-    m_width = width;
-    m_height = height;
+    m_width = std::max(1, width);
+    m_height = std::max(1, height);
     glViewport(0, 0, m_width, m_height);
 
     m_framebuffer = Framebuffer::Create(Texture::Create(width, height, GL_RGBA));
@@ -246,7 +249,7 @@ void Context::MakeMatrices() {
         case 'F': case 'X': case 'A': case 'C':
             matrixFunction();
             direction.push('F');
-
+            // glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -1.0f * m_cylinderHeight, 0.0f));
             stack.pushMatrix(glm::scale(glm::mat4(1.0f), glm::vec3(m_radiusScaling, m_heightScaling, m_radiusScaling)) *
                 glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, m_cylinderHeight * (m_heightScaling + 1.0f) / 2.2f, 0.0f))); // 방향
             modelMatrices.push_back(stack.getCurrentMatrix());
@@ -350,7 +353,7 @@ void Context::MakeMatrices() {
 
 void Context::Clear() {
     m_stochastic = false;
-    m_codes = "";
+    m_codes.clear();
     strcpy_s(gui_axiom, sizeof(gui_axiom), m_axiom.c_str());
     strcpy_s(gui_rules, sizeof(gui_rules), m_rules.c_str());
 }
@@ -361,11 +364,11 @@ void Context::OpenObject(ImGui::FileBrowser file) {
     std::size_t pos = selected.rfind('.');
     std::string tex = selected.substr(0,pos);
 
-    SPDLOG_INFO("file location : {}", selected);
+    SPDLOG_INFO("File location : {}", selected);
     m_model = Model::Load(selected);
     if(!m_model) {
         // 모델이 생성되지 않았을 때 처리하는 코드
-        SPDLOG_ERROR("failed to open obj : {}", selected);
+        SPDLOG_ERROR("Failed to open obj : {}", selected);
         m_model.reset();
         return;
     }
@@ -374,17 +377,174 @@ void Context::OpenObject(ImGui::FileBrowser file) {
     // 동일한 이름의 텍스쳐 파일이 있을 경우 텍스쳐 지정
     if(std::filesystem::exists(tex+".png")) {
         tex+=".png";
-        m_modelTexture = Texture::CreateFromImage(Image::Load(tex).get());
+        m_modelTexture = Texture::CreateFromImage(Image::Load(tex, false).get());
     }
     else if(std::filesystem::exists(tex+".jpg")) {
         tex+=".jpg";
-        m_modelTexture = Texture::CreateFromImage(Image::Load(tex).get());
+        m_modelTexture = Texture::CreateFromImage(Image::Load(tex, false).get());
     }
     else {
         m_modelTexture = Texture::CreateFromImage(Image::CreateSingleColorImage(4, 4, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f)).get());
     }
 
     Clear();
+}
+
+void Context::SaveObject(ImGui::FileBrowser file) {
+    if(m_codes.empty()) {
+        SPDLOG_ERROR("Create tree object before saving *.obj");
+        return;
+    }
+    std::string selected = file.GetSelected().string();
+    std::string filename = "tree";
+    std::string num = "1";
+
+    if(std::filesystem::exists(selected + "\\" + filename + ".obj")) {
+        int i = 2;
+        while(std::filesystem::exists(selected + "\\" + filename + "(" + num + ")" + ".obj")) {
+            num = std::to_string(i);
+            i++;
+        }
+        filename += "(" + num + ")" +".obj";
+    }
+    else{
+        filename += ".obj";
+    }
+
+    std::ofstream out(selected + "\\" + filename);
+    if(WriteToFile(out))
+        SPDLOG_INFO("File saved : {}", selected + "\\" + filename);
+    out.close();
+}
+
+bool Context::WriteToFile(std::ofstream& out) {
+    if (!out.is_open()) {
+        SPDLOG_ERROR("Failed to open file : {}", std::to_string(out.tellp()));
+        return false;
+    }
+    std::vector<Vertex> modelVertex = m_cylinder->GetVertexVector();
+    std::vector<int> modelIndex = m_cylinder->GetIndexVector();
+    
+    int stride = m_cylinder->GetVertexBuffer()->GetCount();
+    std::vector<std::tuple<float, float, float>> v;
+    std::vector<std::tuple<float, float>> vt;
+    std::vector<std::tuple<float, float, float>> vn;
+    std::vector<std::tuple<int, int, int>> f;
+
+    for(int i=0; i<m_modelMatrices.size(); i++) {
+        int start = stride * i;
+        // vertex positions
+        auto matrix = m_modelMatrices[i] * glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -1.0f * m_cylinderHeight, 0.0f));
+        for (const auto& vertex : modelVertex) {
+            auto vertexAffine = glm::vec4(vertex.position.x, vertex.position.y, vertex.position.z, 1);
+            auto normalAffine = glm::vec4(vertex.normal.x, vertex.normal.y, vertex.normal.z, 0);
+            vertexAffine = matrix * vertexAffine;
+            normalAffine = matrix * normalAffine;
+
+            v.push_back(std::tuple<float, float, float>(vertexAffine.x, vertexAffine.y, vertexAffine.z));
+            vt.push_back(std::tuple<float, float>(vertex.texCoord.x, vertex.texCoord.y));
+            vn.push_back(std::tuple<float, float, float>(normalAffine.x, normalAffine.y, normalAffine.z));
+        }
+
+        // faces using indices
+        size_t indexCount = modelIndex.size();
+        for (size_t j = 0; j < indexCount; j += 3) {
+            uint32_t index1 = modelIndex[j] + start + 1;
+            uint32_t index2 = modelIndex[j+1] + start + 1;
+            uint32_t index3 = modelIndex[j+2] + start + 1;
+
+            f.push_back(std::tuple<int, int, int>(index1, index2, index3));
+        }
+    }
+
+    out << "# tree generator\n";
+    out << "o Cylinder\n";
+    out << "# vertex coordinates\n";
+    for(int i=0; i<v.size(); i++) {
+        out << "v " << std::get<0>(v[i]) << " " << std::get<1>(v[i]) << " " << std::get<2>(v[i]) << "\n";
+    }
+
+    out << "\n# texture coordinates\n";
+    for(int i=0; i<vt.size(); i++) {
+        out << "vt " << std::get<0>(vt[i]) << " " << std::get<1>(vt[i]) << "\n";
+    }
+
+    out << "\n# normal coordinates\n";
+    for(int i=0; i<vn.size(); i++) {
+        out << "vn " << std::get<0>(vn[i]) << " " << std::get<1>(vn[i]) << " " << std::get<2>(vn[i]) << "\n";
+    }
+
+    out << "\n# face\n";
+    for(int i=0; i<f.size(); i++) {
+        out << "f "
+                << std::get<0>(f[i]) << "/" << std::get<0>(f[i]) << "/" << std::get<0>(f[i]) << " "
+                << std::get<1>(f[i]) << "/" << std::get<1>(f[i]) << "/" << std::get<1>(f[i]) << " "
+                << std::get<2>(f[i]) << "/" << std::get<2>(f[i]) << "/" << std::get<2>(f[i])
+                << "\n";
+    }
+
+    v.clear();
+    vt.clear();
+    vn.clear();
+    f.clear();
+
+    std::vector<Vertex> leafVertex = m_leaf->GetVertexVector();
+    std::vector<int> leafIndex = m_leaf->GetIndexVector();
+    int leafStart = stride * m_modelMatrices.size();
+    
+    int leafStride = m_leaf->GetVertexBuffer()->GetCount();
+    for(int i = 0; i<m_leafMatrices.size(); i++) {
+        int start = leafStride * i;
+        // vertex positions
+        auto matrix = m_leafMatrices[i];
+        for (const auto& vertex : leafVertex) {
+            auto vertexAffine = glm::vec4(vertex.position.x, vertex.position.y, vertex.position.z, 1);
+            auto normalAffine = glm::vec4(vertex.normal.x, vertex.normal.y, vertex.normal.z, 0);
+            vertexAffine = matrix * vertexAffine;
+            normalAffine = matrix * normalAffine;
+
+            v.push_back(std::tuple<float, float, float>(vertexAffine.x, vertexAffine.y, vertexAffine.z));
+            vt.push_back(std::tuple<float, float>(vertex.texCoord.x, vertex.texCoord.y));
+            vn.push_back(std::tuple<float, float, float>(normalAffine.x, normalAffine.y, normalAffine.z));
+        }
+
+        // faces using indices
+        size_t indexCount = leafIndex.size();
+        for (size_t j = 0; j < indexCount; j += 3) {
+            uint32_t index1 = leafIndex[j] + leafStart + start + 1;
+            uint32_t index2 = leafIndex[j+1] + leafStart +start + 1;
+            uint32_t index3 = leafIndex[j+2] + leafStart + start + 1;
+
+            f.push_back(std::tuple<int, int, int>(index1, index2, index3));
+        }
+    }
+
+    out << "\no Leaf\n";
+    out << "# vertex coordinates\n";
+    for(int i=0; i<v.size(); i++) {
+        out << "v " << std::get<0>(v[i]) << " " << std::get<1>(v[i]) << " " << std::get<2>(v[i]) << "\n";
+    }
+
+    out << "\n# texture coordinates\n";
+    for(int i=0; i<vt.size(); i++) {
+        out << "vt " << std::get<0>(vt[i]) << " " << std::get<1>(vt[i]) << "\n";
+    }
+
+    out << "\n# normal coordinates\n";
+    for(int i=0; i<vn.size(); i++) {
+        out << "vn " << std::get<0>(vn[i]) << " " << std::get<1>(vn[i]) << " " << std::get<2>(vn[i]) << "\n";
+    }
+
+    out << "\n# face\n";
+    for(int i=0; i<f.size(); i++) {
+        out << "f "
+                << std::get<0>(f[i]) << "/" << std::get<0>(f[i]) << "/" << std::get<0>(f[i]) << " "
+                << std::get<1>(f[i]) << "/" << std::get<1>(f[i]) << "/" << std::get<1>(f[i]) << " "
+                << std::get<2>(f[i]) << "/" << std::get<2>(f[i]) << "/" << std::get<2>(f[i])
+                << "\n";
+    }
+
+    return true;
 }
 
 bool Context::Init(){
@@ -416,6 +576,8 @@ bool Context::Init(){
 
     m_objProgram = Program::Create("./shader/obj.vs", "./shader/obj.fs");
     if(!m_objProgram) return false;
+
+    m_treeTexture = Texture::CreateFromImage(Image::Load("./image/tree.png").get());
 
     glClearColor(0.0f, 0.1f, 0.2f, 0.0f);
 
@@ -486,7 +648,7 @@ void Context::Render() {
             }
             if(ImGui::MenuItem("Save", "Ctrl+S")) {
                 m_fileDialogSave.SetTitle("Select Folder");
-                m_fileDialogSave.SetTypeFilters({""});
+                m_fileDialogSave.SetTypeFilters({".obj"});
                 m_fileDialogSave.Open();
             }
             ImGui::EndMenu();
@@ -504,7 +666,7 @@ void Context::Render() {
     // 만약 사용자가 Save 메뉴를 선택했다면
     m_fileDialogSave.Display();
     if(m_fileDialogSave.HasSelected()) {
-        SPDLOG_INFO("folder has selected : {}", m_fileDialogSave.GetSelected().string());
+        SaveObject(m_fileDialogSave);
     }
     m_fileDialogSave.ClearSelected();
 
@@ -696,7 +858,7 @@ void Context::DrawTree(const glm::mat4& projection, const glm::mat4& view, const
         glEnable(GL_BLEND);
         treeProgram->Use();
         treeProgram->SetUniform("tex", 0);
-        m_cylinderTexture->Bind();
+        m_treeTexture->Bind();
         // m_branchMaterial->SetToProgram(treeProgram);
         for(int i=0; i<m_modelMatrices.size(); i++){
             auto transform = projection * view * m_modelMatrices[i] * glm::translate(glm::mat4(1.0f),
@@ -709,7 +871,7 @@ void Context::DrawTree(const glm::mat4& projection, const glm::mat4& view, const
 
         leafProgram->Use();
         leafProgram->SetUniform("tex", 0);
-        m_leafTexture->Bind();
+        m_treeTexture->Bind();
         // m_leafMaterial->SetToProgram(leafProgram);
         for(int i=0; i<m_leafMatrices.size(); i++){
             leafProgram->SetUniform("transform", projection * view * m_leafMatrices[i]);
@@ -740,17 +902,6 @@ void Context::DrawTree(const glm::mat4& projection, const glm::mat4& view, const
         // glDrawElementsInstanced(GL_TRIANGLES, m_cylinder->GetIndexBuffer()->GetCount(),
         //     GL_UNSIGNED_INT, 0, m_cylinderPosBuffer->GetCount());
     }
-}
-
-void Context::DrawCylinder(const glm::mat4& projection, const glm::mat4 view,
-    const glm::mat4 modelTransform, const Program* program) {
-
-    program->Use();
-    auto transform = projection * view * modelTransform * glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -1.0f * m_cylinderHeight, 0.0f));
-    program->SetUniform("transform", transform);
-    program->SetUniform("modelTransform", glm::mat4(1.0f));
-    // m_branchMaterial->SetToProgram(program);
-    m_cylinder->Draw(program);
 }
 
 void Context::DrawObj(const glm::mat4& projection, const glm::mat4& view, const Program* program) {

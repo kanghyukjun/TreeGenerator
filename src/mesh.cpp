@@ -26,6 +26,9 @@ void Mesh::Init(const std::vector<Vertex>& vertices,
     m_vertexLayout->SetAttrib(1, 3, GL_FLOAT, false, sizeof(Vertex), offsetof(Vertex, normal)); // normal
     m_vertexLayout->SetAttrib(2, 2, GL_FLOAT, false, sizeof(Vertex), offsetof(Vertex, texCoord)); // tex
     m_vertexLayout->SetAttrib(3, 3, GL_FLOAT, false, sizeof(Vertex), offsetof(Vertex, tangent)); // tex
+
+    m_vertexVector.assign(vertices.begin(), vertices.end());
+    m_indexVector.assign(indices.begin(), indices.end());
 }
 
 void Mesh::Draw(const Program* program) const {
@@ -100,17 +103,17 @@ MeshUPtr Mesh::CreatePlane() {
 MeshUPtr Mesh::CreateCylinder(const float radius, const float height, const float rate){
     std::vector<Vertex> vertices;
     std::vector<uint32_t> indices;
-    const int numSlices = 50;
+    const int m_numSlices = 50;
 
     float textureRadius = 0.218f;
-    float textureIncrement = 0.958f / static_cast<float>(numSlices);
+    float textureIncrement = 0.958f / static_cast<float>(m_numSlices);
 
     // Create the top cap vertices.
     glm::vec3 topCenter = glm::vec3(0.0f, height / 2.0f, 0.0f);
     vertices.push_back(Vertex{topCenter, glm::vec3(0.0f, 1.0f, 0.0f), glm::vec2(0.717f, 0.740f), glm::vec3(0.0f, 0.0f, 0.0f)});
-    float angleIncrement = glm::two_pi<float>() / numSlices;
+    float angleIncrement = glm::two_pi<float>() / m_numSlices;
     float topRadius = radius * rate;
-    for (int i = 0; i < numSlices; i++) {
+    for (int i = 0; i < m_numSlices; i++) {
         float angle = angleIncrement * i;
         glm::vec3 pos = glm::vec3(glm::cos(angle) * topRadius, height / 2.0f, glm::sin(angle) * topRadius);
         vertices.push_back(Vertex{pos, glm::vec3(0.0f, 1.0f, 0.0f),
@@ -120,7 +123,7 @@ MeshUPtr Mesh::CreateCylinder(const float radius, const float height, const floa
     // Create the bottom cap vertices.
     glm::vec3 bottomCenter = glm::vec3(0.0f, -height / 2.0f, 0.0f);
     vertices.push_back(Vertex{bottomCenter, glm::vec3(0.0f, -1.0f, 0.0f), glm::vec2(0.717f, 0.740f), glm::vec3(0.0f, 0.0f, 0.0f)});
-    for (int i = 0; i < numSlices; i++) {
+    for (int i = 0; i < m_numSlices; i++) {
         float angle = angleIncrement * i;
         glm::vec3 pos = glm::vec3(glm::cos(angle) * radius, -height / 2.0f, glm::sin(angle) * radius);
         vertices.push_back(Vertex{pos, glm::vec3(0.0f, -1.0f, 0.0f),
@@ -128,14 +131,14 @@ MeshUPtr Mesh::CreateCylinder(const float radius, const float height, const floa
     }
 
     // Create the side vertices.
-    for (int i = 0; i < numSlices; i++) {
+    for (int i = 0; i < m_numSlices; i++) {
         float angle = angleIncrement * i;
         float increment = textureIncrement * i;
         glm::vec3 posTop = glm::vec3(glm::cos(angle) * topRadius, height / 2.0f, glm::sin(angle) * topRadius);
         vertices.push_back(Vertex{posTop, glm::normalize(glm::vec3(glm::cos(angle) * radius, radius / height * (radius - topRadius),
             glm::sin(angle) * radius)), glm::vec2(0.976f - increment, 0.474f), glm::vec3(0.0f, 0.0f, 0.0f)});
     }
-    for (int i = 0; i < numSlices; i++) {
+    for (int i = 0; i < m_numSlices; i++) {
         float angle = angleIncrement * i;
         float increment = textureIncrement * i;
         glm::vec3 posBottom = glm::vec3(glm::cos(angle) * radius, -height / 2.0f, glm::sin(angle) * radius);
@@ -144,55 +147,55 @@ MeshUPtr Mesh::CreateCylinder(const float radius, const float height, const floa
     }
 
     // Create the top cap indices.
-    for (int i = 1; i < numSlices; i++) {
+    for (int i = 1; i < m_numSlices; i++) {
         indices.push_back(0);
         indices.push_back(i + 1);
         indices.push_back(i);
     }
     indices.push_back(0);
-    indices.push_back(numSlices);
+    indices.push_back(m_numSlices);
     indices.push_back(1);
 
     // Create the bottom cap indices.
-    int bottomCenterIndex = numSlices + 1;
-    for (int i = bottomCenterIndex + 1; i < bottomCenterIndex + numSlices; i++) {
+    int bottomCenterIndex = m_numSlices + 1;
+    for (int i = bottomCenterIndex + 1; i < bottomCenterIndex + m_numSlices; i++) {
         indices.push_back(bottomCenterIndex);
         indices.push_back(i);
         indices.push_back(i + 1);
     }
     indices.push_back(bottomCenterIndex);
-    indices.push_back(numSlices * 2 + 1);
+    indices.push_back(m_numSlices * 2 + 1);
     indices.push_back(bottomCenterIndex + 1);
 
     // Create the side indices.
-    for (int i = numSlices * 2 + 2; i < numSlices * 3 + 1; i++){
-        indices.push_back(i + numSlices + 1);
-        indices.push_back(i + numSlices);
+    for (int i = m_numSlices * 2 + 2; i < m_numSlices * 3 + 1; i++){
+        indices.push_back(i + m_numSlices + 1);
+        indices.push_back(i + m_numSlices);
         indices.push_back(i);
         indices.push_back(i);
         indices.push_back(i + 1);
-        indices.push_back(i + numSlices + 1);
+        indices.push_back(i + m_numSlices + 1);
     }
-    indices.push_back(numSlices * 3 + 2);
-    indices.push_back(numSlices * 4 + 1);
-    indices.push_back(numSlices * 3 + 1);
-    indices.push_back(numSlices * 3 + 1);
-    indices.push_back(numSlices * 2 + 2);
-    indices.push_back(numSlices * 3 + 2);
+    indices.push_back(m_numSlices * 3 + 2);
+    indices.push_back(m_numSlices * 4 + 1);
+    indices.push_back(m_numSlices * 3 + 1);
+    indices.push_back(m_numSlices * 3 + 1);
+    indices.push_back(m_numSlices * 2 + 2);
+    indices.push_back(m_numSlices * 3 + 2);
 
     return Create(vertices, indices, GL_TRIANGLES);
 }
 
 MeshUPtr Mesh::CreateLeaf(float width, float height) {
     std::vector<Vertex> vertices = {
-        Vertex { glm::vec3( 0.0f,  height / -2.0f, width / 2.0f), glm::vec3( 1.0f,  0.0f, 0.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f) },
-        Vertex { glm::vec3( 0.0f,  height / -2.0f, width / -2.0f), glm::vec3( 1.0f,  0.0f, 0.0f), glm::vec2(1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f) },
-        Vertex { glm::vec3( 0.0f,  height / 2.0f, width / -2.0f), glm::vec3( 1.0f,  0.0f, 0.0f), glm::vec2(1.0f, 1.0f), glm::vec3(0.0f, 0.0f, 0.0f) },
+        Vertex { glm::vec3( 0.0f,  height / -2.0f, width / 2.0f), glm::vec3( 1.0f,  0.0f, 0.0f), glm::vec2(0.0f, 0.479f), glm::vec3(0.0f, 0.0f, 0.0f) },
+        Vertex { glm::vec3( 0.0f,  height / -2.0f, width / -2.0f), glm::vec3( 1.0f,  0.0f, 0.0f), glm::vec2(0.491f, 0.479f), glm::vec3(0.0f, 0.0f, 0.0f) },
+        Vertex { glm::vec3( 0.0f,  height / 2.0f, width / -2.0f), glm::vec3( 1.0f,  0.0f, 0.0f), glm::vec2(0.491f, 1.0f), glm::vec3(0.0f, 0.0f, 0.0f) },
         Vertex { glm::vec3( 0.0f,  height / 2.0f, width / 2.0f), glm::vec3( 1.0f,  0.0f, 0.0f), glm::vec2(0.0f, 1.0f), glm::vec3(0.0f, 0.0f, 0.0f) },
 
-        Vertex { glm::vec3( 0.0f,  height / -2.0f, width / 2.0f), glm::vec3( -1.0f,  0.0f, 0.0f), glm::vec2(0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f) },
-        Vertex { glm::vec3( 0.0f,  height / -2.0f, width / -2.0f), glm::vec3( -1.0f,  0.0f, 0.0f), glm::vec2(1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f) },
-        Vertex { glm::vec3( 0.0f,  height / 2.0f, width / -2.0f), glm::vec3( -1.0f,  0.0f, 0.0f), glm::vec2(1.0f, 1.0f), glm::vec3(0.0f, 0.0f, 0.0f) },
+        Vertex { glm::vec3( 0.0f,  height / -2.0f, width / 2.0f), glm::vec3( -1.0f,  0.0f, 0.0f), glm::vec2(0.0f, 0.479f), glm::vec3(0.0f, 0.0f, 0.0f) },
+        Vertex { glm::vec3( 0.0f,  height / -2.0f, width / -2.0f), glm::vec3( -1.0f,  0.0f, 0.0f), glm::vec2(0.491f, 0.479f), glm::vec3(0.0f, 0.0f, 0.0f) },
+        Vertex { glm::vec3( 0.0f,  height / 2.0f, width / -2.0f), glm::vec3( -1.0f,  0.0f, 0.0f), glm::vec2(0.491f, 1.0f), glm::vec3(0.0f, 0.0f, 0.0f) },
         Vertex { glm::vec3( 0.0f,  height / 2.0f, width / 2.0f), glm::vec3( -1.0f,  0.0f, 0.0f), glm::vec2(0.0f, 1.0f), glm::vec3(0.0f, 0.0f, 0.0f) },
     };
 

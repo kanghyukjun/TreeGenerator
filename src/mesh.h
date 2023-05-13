@@ -53,6 +53,9 @@ public:
     static void ComputeTangents(std::vector<Vertex>& vertices,
         const std::vector<uint32_t>& indices);
 
+    std::vector<Vertex> GetVertexVector() { return m_vertexVector; }
+    std::vector<int> GetIndexVector() { return m_indexVector; }
+
 private:
     Mesh() {}
     void Init(const std::vector<Vertex>& vertices,
@@ -64,6 +67,9 @@ private:
     BufferPtr m_indexBuffer;
 
     MaterialPtr m_material;
+    std::vector<Vertex> m_vertexVector;
+    std::vector<int> m_indexVector;
+    int m_numSlices = 50;
 };
 
 #endif // __MESH_H__

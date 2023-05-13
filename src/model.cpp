@@ -54,7 +54,7 @@ void Model::ProcessNode(aiNode* node, const aiScene* scene) {
 }
 
 void Model::ProcessMesh(aiMesh* mesh, const aiScene* scene) {
-    SPDLOG_INFO("process mesh: {}, #vert: {}, #face: {}",
+    SPDLOG_INFO("Process mesh: {}, #vert: {}, #face: {}",
         mesh->mName.C_Str(), mesh->mNumVertices, mesh->mNumFaces);
 
     std::vector<Vertex> vertices;
@@ -82,7 +82,7 @@ void Model::ProcessMesh(aiMesh* mesh, const aiScene* scene) {
 }
 
 void Model::Draw(const Program* program) const {
-  for (auto& mesh: m_meshes) {
-    mesh->Draw(program);
-  }
+    for (auto& mesh: m_meshes) {
+        mesh->Draw(program);
+    }
 }

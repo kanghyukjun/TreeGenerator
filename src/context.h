@@ -34,17 +34,20 @@ public:
     void DrawTree(const glm::mat4& projection, const glm::mat4& view, const Program* treeProgram, const Program* leafProgram);
     // void DrawLeaves(const glm::mat4& projection, const glm::mat4& view,
     //     const glm::mat4 modelTransform, const Program* program, char direction);
-    void DrawCylinder(const glm::mat4& projection, const glm::mat4 view,
-        const glm::mat4 modelTransform, const Program* program);
-    
-    void Clear();
-    std::string MakeCodes();
-    void MakeMatrices();
-    void OpenObject(ImGui::FileBrowser file);
+    // void DrawCylinder(const glm::mat4& projection, const glm::mat4 view,
+    //     const glm::mat4 modelTransform, const Program* program);
 
 private:
     Context(){}
     bool Init();
+
+    void Clear();
+    std::string MakeCodes();
+    void MakeMatrices();
+    void OpenObject(ImGui::FileBrowser file);
+    void SaveObject(ImGui::FileBrowser file);
+    bool WriteToFile(std::ofstream& out);
+
     ProgramUPtr m_program;
     ProgramUPtr m_simpleProgram;
     ProgramUPtr m_textureProgram;
@@ -120,6 +123,7 @@ private:
     BufferUPtr m_leafPosBuffer;
     VertexLayoutUPtr m_leafInstance;
     TexturePtr m_leafTexture;
+    TexturePtr m_treeTexture;
 
     // tree
     float m_angle { 30.0f };
@@ -128,7 +132,7 @@ private:
     std::vector<std::string> m_codesVector;
     std::vector<glm::mat4> m_modelMatrices;
     std::vector<glm::mat4> m_leafMatrices;
-    std::string m_codes { NULL };
+    std::string m_codes;
     int m_iteration { 3 };
 
     // tree gui
