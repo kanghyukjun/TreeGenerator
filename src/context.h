@@ -47,6 +47,7 @@ private:
     void OpenObject(ImGui::FileBrowser file);
     void SaveObject(ImGui::FileBrowser file);
     bool WriteToFile(std::ofstream& out);
+    void SetRules();
 
     ProgramUPtr m_program;
     ProgramUPtr m_simpleProgram;
@@ -83,7 +84,6 @@ private:
     MaterialPtr m_branchMaterial;
     MaterialPtr m_leafMaterial;
     MaterialPtr m_objMaterial;
-    TexturePtr m_windowTexture;
 
     // camera parameter
     bool m_cameraControl { false };
@@ -109,8 +109,8 @@ private:
     // cylinder length;
     float m_cylinderRadius { 0.1f };
     float m_cylinderHeight { 1.0f };
-    float m_leafRadius { 0.1f };
-    float m_leafHeight { 0.1f };
+    float m_leafRadius { 0.2f };
+    float m_leafHeight { 0.2f };
     float m_radiusScaling { 0.75f };
     float m_heightScaling { 0.75f };
 
@@ -124,6 +124,7 @@ private:
     VertexLayoutUPtr m_leafInstance;
     TexturePtr m_leafTexture;
     TexturePtr m_treeTexture;
+    TexturePtr m_brownTexture;
 
     // tree
     float m_angle { 30.0f };
@@ -136,16 +137,29 @@ private:
     int m_iteration { 3 };
 
     // tree gui
-    float gui_angle { m_angle };
-    float gui_radius = { m_cylinderRadius };
-    float gui_length = { m_cylinderHeight };
-    char gui_axiom[1024] = { "FFA" }; 
-    char gui_rules[1024 * 4] = {
+    float m_gui_angle { m_angle };
+    float m_gui_radius { m_cylinderRadius };
+    float m_gui_length { m_cylinderHeight };
+    float m_gui_leaf_radius { m_leafRadius };
+    float m_gui_leaf_height { m_leafHeight };
+    char m_gui_axiom[1024] = { "FFA" }; 
+    char m_gui_rules[1024 * 4] = {
         "A=F[--&&&FC][++&&&FC][--^FC][++^FC]\n"
         "C=F[--<&&FC]||[++>&&FC]||[+<^^FC]||[->^^FC]" };
 
-    std::string m_axiom { gui_axiom };
-    std::string m_rules { gui_rules };
+    enum Rule {
+        CUSTOM_RULES,
+        ARROW_TREE,
+        STOCHASTIC,
+        SKEWED_TREE,
+        BINARYTREE,
+        NUM_RULES
+    };
+    char* m_comboItems[NUM_RULES] { "custom rules", "arrow tree", "stochastic", "skewed tree", "binary tree" };
+    int m_currentItem = ARROW_TREE;
+
+    std::string m_axiom { m_gui_axiom };
+    std::string m_rules { m_gui_rules };
 
     ImGui::FileBrowser m_fileDialogOpen;
     ImGui::FileBrowser m_fileDialogSave {ImGuiFileBrowserFlags_SelectDirectory | ImGuiFileBrowserFlags_EnterNewFilename};

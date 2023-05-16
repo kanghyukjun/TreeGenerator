@@ -188,15 +188,15 @@ MeshUPtr Mesh::CreateCylinder(const float radius, const float height, const floa
 
 MeshUPtr Mesh::CreateLeaf(float width, float height) {
     std::vector<Vertex> vertices = {
-        Vertex { glm::vec3( 0.0f,  height / -2.0f, width / 2.0f), glm::vec3( 1.0f,  0.0f, 0.0f), glm::vec2(0.0f, 0.479f), glm::vec3(0.0f, 0.0f, 0.0f) },
-        Vertex { glm::vec3( 0.0f,  height / -2.0f, width / -2.0f), glm::vec3( 1.0f,  0.0f, 0.0f), glm::vec2(0.491f, 0.479f), glm::vec3(0.0f, 0.0f, 0.0f) },
-        Vertex { glm::vec3( 0.0f,  height / 2.0f, width / -2.0f), glm::vec3( 1.0f,  0.0f, 0.0f), glm::vec2(0.491f, 1.0f), glm::vec3(0.0f, 0.0f, 0.0f) },
-        Vertex { glm::vec3( 0.0f,  height / 2.0f, width / 2.0f), glm::vec3( 1.0f,  0.0f, 0.0f), glm::vec2(0.0f, 1.0f), glm::vec3(0.0f, 0.0f, 0.0f) },
+        Vertex { glm::vec3( 0.0f,  0.0f, width / 2.0f), glm::vec3( 1.0f,  0.0f, 0.0f), glm::vec2(0.0f, 0.5f), glm::vec3(0.0f, 0.0f, 0.0f) },
+        Vertex { glm::vec3( 0.0f,  0.0f, width / -2.0f), glm::vec3( 1.0f,  0.0f, 0.0f), glm::vec2(0.47f, 0.5f), glm::vec3(0.0f, 0.0f, 0.0f) },
+        Vertex { glm::vec3( 0.0f,  height, width / -2.0f), glm::vec3( 1.0f,  0.0f, 0.0f), glm::vec2(0.47f, 1.0f), glm::vec3(0.0f, 0.0f, 0.0f) },
+        Vertex { glm::vec3( 0.0f,  height, width / 2.0f), glm::vec3( 1.0f,  0.0f, 0.0f), glm::vec2(0.0f, 1.0f), glm::vec3(0.0f, 0.0f, 0.0f) },
 
-        Vertex { glm::vec3( 0.0f,  height / -2.0f, width / 2.0f), glm::vec3( -1.0f,  0.0f, 0.0f), glm::vec2(0.0f, 0.479f), glm::vec3(0.0f, 0.0f, 0.0f) },
-        Vertex { glm::vec3( 0.0f,  height / -2.0f, width / -2.0f), glm::vec3( -1.0f,  0.0f, 0.0f), glm::vec2(0.491f, 0.479f), glm::vec3(0.0f, 0.0f, 0.0f) },
-        Vertex { glm::vec3( 0.0f,  height / 2.0f, width / -2.0f), glm::vec3( -1.0f,  0.0f, 0.0f), glm::vec2(0.491f, 1.0f), glm::vec3(0.0f, 0.0f, 0.0f) },
-        Vertex { glm::vec3( 0.0f,  height / 2.0f, width / 2.0f), glm::vec3( -1.0f,  0.0f, 0.0f), glm::vec2(0.0f, 1.0f), glm::vec3(0.0f, 0.0f, 0.0f) },
+        Vertex { glm::vec3( 0.0f,  0.0f, width / 2.0f), glm::vec3( -1.0f,  0.0f, 0.0f), glm::vec2(0.0f, 0.5f), glm::vec3(0.0f, 0.0f, 0.0f) },
+        Vertex { glm::vec3( 0.0f,  0.0f, width / -2.0f), glm::vec3( -1.0f,  0.0f, 0.0f), glm::vec2(0.47f, 0.5f), glm::vec3(0.0f, 0.0f, 0.0f) },
+        Vertex { glm::vec3( 0.0f,  height, width / -2.0f), glm::vec3( -1.0f,  0.0f, 0.0f), glm::vec2(0.47f, 1.0f), glm::vec3(0.0f, 0.0f, 0.0f) },
+        Vertex { glm::vec3( 0.0f,  height, width / 2.0f), glm::vec3( -1.0f,  0.0f, 0.0f), glm::vec2(0.0f, 1.0f), glm::vec3(0.0f, 0.0f, 0.0f) },
     };
 
     std::vector<uint32_t> indices = {
