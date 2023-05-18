@@ -1,11 +1,6 @@
 ﻿#include "context.h"
 #include "image.h"
 #include "glm/gtx/string_cast.hpp"
-#include <regex>
-#include <thread>
-#include <cstdlib>
-#include <random>
-#include <sstream>
 #include <iostream>
 #include <fstream>
 #include <filesystem>
@@ -98,50 +93,25 @@ bool Context::Init(){
     m_lightingShadowProgram = Program::Create("./shader/lighting_shadow.vs", "./shader/lighting_shadow.fs");
     if (!m_lightingShadowProgram) return false;
 
-    m_cylinderTexture = Texture::CreateFromImage(Image::Load("./image/wood.png").get());
-    m_cylinderProgram = Program::Create("./shader/cylinder.vs", "./shader/cylinder.fs");
-    if(!m_cylinderProgram) return false;
+    m_logProgram = Program::Create("./shader/cylinder.vs", "./shader/cylinder.fs");
+    if(!m_logProgram) return false;
 
-    m_leafTexture = Texture::CreateFromImage(Image::Load("./image/leaf2.png").get());
+    
     m_leafProgram = Program::Create("./shader/leaf.vs", "./shader/leaf.fs");
     if(!m_leafProgram) return false;
 
     m_objProgram = Program::Create("./shader/obj.vs", "./shader/obj.fs");
     if(!m_objProgram) return false;
 
-    m_treeTexture = Texture::CreateFromImage(Image::Load("./image/tree.png").get());
-
     glClearColor(0.0f, 0.1f, 0.2f, 0.0f);
-
-    TexturePtr darkGrayTexture = Texture::CreateFromImage(
-        Image::CreateSingleColorImage(4, 4, glm::vec4(0.2f, 0.2f, 0.2f, 1.0f)).get());
 
     TexturePtr grayTexture = Texture::CreateFromImage(
         Image::CreateSingleColorImage(4, 4, glm::vec4(0.5f, 0.5f, 0.5f, 1.0f)).get());
-
-    m_brownTexture = Texture::CreateFromImage(
-        Image::CreateSingleColorImage(4, 4, glm::vec4(0.6f, 0.4f, 0.2f, 1.0f)).get());
-
-    TexturePtr greenTexture = Texture::CreateFromImage(
-        Image::CreateSingleColorImage(4, 4, glm::vec4(0.2f, 0.6f, 0.2f, 1.0f)).get());
-
 
     m_planeMaterial = Material::Create();
     m_planeMaterial->diffuse = Texture::CreateFromImage(Image::Load("./image/marble.jpg").get());
     m_planeMaterial->specular = grayTexture;
     m_planeMaterial->shininess = 4.0f;
-
-    m_branchMaterial = Material::Create();
-    m_branchMaterial->diffuse = m_brownTexture;
-    m_branchMaterial->specular = m_brownTexture;
-    m_branchMaterial->shininess = 4.0;
-
-    m_leafMaterial = Material::Create();
-    m_leafMaterial->diffuse = greenTexture;
-    m_leafMaterial->specular = greenTexture;
-    m_leafMaterial->shininess = 3.0f;
-
-    m_plane = Mesh::CreatePlane();
 
     // cube texture
     auto cubeRight = Image::Load("./image/skybox/right.jpg", false);
@@ -165,6 +135,11 @@ bool Context::Init(){
     if(!m_envMapProgram) return false;
 
     m_shadowMap = ShadowMap::Create(1024,1024);
+
+    m_lsystem = LSystem::Create("","", m_treeParam, m_angle, 0);
+    if(!m_lsystem) return false;
+
+    m_lsystem2 = LSystem::Create("X", "X=F[<X][>X]", m_treeParam, m_angle, 3, 2.0f, 2.0f);
 
     return true;
 }
@@ -232,6 +207,7 @@ void Context::Render() {
             ImGui::Checkbox("scenery", &m_scenery);
         }
         ImGui::EndChild();
+        ImGui::SetWindowPos(m_UIPos);
         ImGui::End();
     }
 
@@ -270,10 +246,11 @@ void Context::Render() {
         }
         ImGui::BeginChild("child3", ImVec2(0, 0), true);
         if (ImGui::CollapsingHeader("string", ImGuiTreeNodeFlags_DefaultOpen)) {
-            ImGui::TextWrapped("%s",m_codes.c_str());
+            ImGui::TextWrapped("%s",m_lsystem->GetCodes().c_str());
         }
         ImGui::EndChild();
         ImGui::EndChild();
+        ImGui::SetWindowPos(m_treePos);
         ImGui::End();
     }
 
@@ -286,23 +263,8 @@ void Context::Render() {
         glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 1.0f, 100.0f) :
         glm::perspective(glm::radians((m_light.cutoff[0] + m_light.cutoff[1]) * 2.0f), 1.0f, 1.0f, 20.0f);
 
-    m_cylinder = Mesh::CreateCylinder(m_cylinderRadius, m_cylinderHeight, m_radiusScaling);
-    m_leaf = Mesh::CreateLeaf(m_leafRadius, m_leafHeight);
-
     if(m_newCodes){
-        // 규칙에 의해 새로운 코드를 생성하는 코드
-        m_codesVector.clear();
-
-        std::istringstream ss(m_gui_rules);
-        std::string token;
-        while (std::getline(ss, token, '\n')) {
-            m_codesVector.push_back(token);
-        }
-
-        m_codes = MakeCodes();
-        m_cylinderHeight *= 1.2f;
-        m_cylinderRadius *= 1.3f;
-        MakeMatrices();
+        m_lsystem = LSystem::Create(m_gui_axiom, m_gui_rules, m_treeParam, m_angle, m_iteration, m_stochastic);
         m_newCodes = false;
     }
 
@@ -382,119 +344,67 @@ void Context::Render() {
     glActiveTexture(GL_TEXTURE0);
 
     DrawScene(projection, view, m_lightingShadowProgram.get());
-    DrawTree(projection, view, m_cylinderProgram.get(), m_leafProgram.get());
+    DrawTree(projection, view, m_logProgram.get(), m_leafProgram.get());
     DrawObj(projection, view, m_objProgram.get());
+}
+
+void Context::SetRules() {
+    m_stochastic = false;
+
+    switch(m_currentItem) {
+    case CUSTOM_RULES:
+
+        break;
+
+    case ARROW_TREE:
+        strcpy_s(m_gui_axiom, sizeof(m_gui_axiom), "FFA");
+        strcpy_s(m_gui_rules, sizeof(m_gui_rules),
+            "A=F[--&&FC][++&&FC][--^FC][++^FC]\n"
+            "C=F[--<&&FC]||[++>&&FC]||[+<^^FC]||[->^^FC]");
+        break;
+
+    case STOCHASTIC:
+        strcpy_s(m_gui_axiom, sizeof(m_gui_axiom), "FFA");
+        strcpy_s(m_gui_rules, sizeof(m_gui_rules),
+            "A=F++++[&&FC]++++[&&FC]++++[^FC]++++[^FC]\n"\
+            "A=F----[&&FC]----[&&FC]----[^FC]----[^FC]\n"\
+            "C=|F[--<&&FC]||[++>&&FFC]||[+<^^FC]||[->^^FFC]\n"\
+            "C=F[--<&&FFC]||[++>&&FC]||[+<^^FFC]||[->^^FC]");
+        m_stochastic = true;
+        break;
+
+    case BUSH_LIKE:
+        strcpy_s(m_gui_axiom, sizeof(m_gui_axiom), "XXA");
+        strcpy_s(m_gui_rules, sizeof(m_gui_rules),
+            "A=[&XFC]++++[&XFC]++++[&XFC]\n"\
+            "F=[&X[X]&X]\n"\
+            "C=X[--<&&XC]++++[++>&&XC]++++[->^^XC]");
+        break;
+
+    case BINARYTREE:
+        strcpy_s(m_gui_axiom, sizeof(m_gui_axiom), "X");
+        strcpy_s(m_gui_rules, sizeof(m_gui_rules), "X=F[<X][>X]");
+        break;
+
+    default:
+        break;
+    }
 }
 
 // 회전 후 이동 -> 이동행렬 * 회전행렬 (순서)
 void Context::DrawTree(const glm::mat4& projection, const glm::mat4& view, const Program* treeProgram, const Program* leafProgram) {
-    if(!m_codes.empty()){
-        glEnable(GL_BLEND);
-        treeProgram->Use();
-        treeProgram->SetUniform("tex", 0);
-        // m_brownTexture->Bind();
-        m_treeTexture->Bind();
-        for(int i=0; i<m_modelMatrices.size(); i++){
-            auto transform = projection * view * m_modelMatrices[i] * glm::translate(glm::mat4(1.0f),
-                glm::vec3(0.0f, -1.0f * m_cylinderHeight, 0.0f));
-            treeProgram->SetUniform("transform", transform);
-            // treeProgram->SetUniform("color", glm::vec3(0.6f, 0.4f, 0.2f));
-            // treeProgram->SetUniform("modelTransform", m_modelMatrices[i]);
-            m_cylinder->Draw(treeProgram);
-        } 
-
-        leafProgram->Use();
-        leafProgram->SetUniform("tex", 0);
-        m_treeTexture->Bind();
-        for(int i=0; i<m_leafMatrices.size(); i++){
-            leafProgram->SetUniform("transform", projection * view * m_leafMatrices[i]);
-            // leafProgram->SetUniform("color", glm::vec3(0.2f, 0.6f, 0.2f));
-            // leafProgram->SetUniform("modelTransform", m_leafMatrices[i]);
-            m_leaf->Draw(leafProgram);
-        }
-
-        // m_cylinderInstance = VertexLayout::Create();
-        // m_cylinderInstance->Bind();
-        // m_cylinder->GetVertexBuffer()->Bind();
-        // m_cylinderInstance->SetAttrib(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
-
-        // m_cylinderPosBuffer = Buffer::CreateWithData(GL_ARRAY_BUFFER, GL_STATIC_DRAW,
-        //     m_modelMatrices.data(), sizeof(glm::mat4), m_modelMatrices.size());
-        // m_cylinderPosBuffer->Bind();
-        // m_cylinderInstance->SetAttrib(1, 16, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), 0);
-        // glVertexAttribDivisor(1, 1);
-        // m_cylinder->GetIndexBuffer()->Bind();
-
-        // glEnable(GL_BLEND);
-        // program->Use();
-        // m_branchMaterial->SetToProgram(program);
-        // m_cylinderInstance->Bind();
-        // auto transform = projection * view;
-        // program->SetUniform("color", glm::vec3(0.6f, 0.4f, 0.2f));
-        // program->SetUniform("transform", transform);
-        // glDrawElementsInstanced(GL_TRIANGLES, m_cylinder->GetIndexBuffer()->GetCount(),
-        //     GL_UNSIGNED_INT, 0, m_cylinderPosBuffer->GetCount());
-    }
-}
-
-std::string Context::MakeCodes() {
-    std::string result = m_gui_axiom;
-
-    if(m_stochastic) {
-        std::string new_str;
-        std::default_random_engine rng(std::random_device{}());
-        for (int i = 0; i < m_codesVector.size(); i += 2) {
-            std::string tmp1 = m_codesVector.at(i);
-            std::string tmp2 = m_codesVector.at(i + 1);
-
-            std::size_t pos1 = tmp1.rfind('=');
-            std::size_t pos2 = tmp2.rfind('=');
-
-            std::string condition1 = tmp1.substr(0, pos1);
-            std::string replace1 = tmp1.substr(pos1 + 1);
-            std::string condition2 = tmp2.substr(0, pos2);
-            std::string replace2 = tmp2.substr(pos2 + 1);
-
-            std::uniform_real_distribution<double> dist(0.0, 1.0);
-            for(int j = 0; j < m_iteration; j++) {
-                size_t pos = 0;
-                while ((pos = result.find(condition1, pos)) != std::string::npos) {
-                    double prob = dist(rng);
-                    if (prob < 0.5) {
-                        new_str = replace1;
-                    } else {
-                        new_str = replace2;
-                    }
-                    result.replace(pos, condition1.length(), new_str);
-                    pos += new_str.length();
-                }
-            }
-        }
-    }
-    else {
-        std::string tmp;
-        for(int i=0; i<m_codesVector.size(); i++){
-            tmp = m_codesVector.at(i);
-            std::size_t pos = tmp.rfind('=');
-
-            std::string condition = tmp.substr(0, pos);
-            std::string replace = tmp.substr(pos + 1);
-            
-            // 이 부분에서 한번 iteration이 돌아갈 때마다 무작위로 문자 치환을 하고싶음
-            for(int j=0; j<m_iteration; j++)
-                result = std::regex_replace(result, std::regex(condition), replace);
-        }
-    }
-    // SPDLOG_INFO("string: {}", result);
-    return result;
+    glEnable(GL_BLEND);
+    m_lsystem->Draw(projection, view, treeProgram, leafProgram);
+    m_lsystem2->Draw(projection, view, treeProgram, leafProgram);
 }
 
 void Context::Clear() {
     // m_stochastic = false;
-    m_codes.clear();
     strcpy_s(m_gui_axiom, sizeof(m_gui_axiom), "");
     strcpy_s(m_gui_rules, sizeof(m_gui_rules), "");
+    LSystem::Create(m_gui_axiom, m_gui_rules, m_treeParam, m_angle, 0);
     m_currentItem = CUSTOM_RULES;
+    m_newCodes = true;
 }
 
 void Context::OpenObject(ImGui::FileBrowser file) {
@@ -530,7 +440,7 @@ void Context::OpenObject(ImGui::FileBrowser file) {
 }
 
 void Context::SaveObject(ImGui::FileBrowser file) {
-    if(m_codes.empty()) {
+    if(m_lsystem->isEmpty()) {
         SPDLOG_ERROR("Create tree object before saving *.obj");
         return;
     }
@@ -561,128 +471,7 @@ bool Context::WriteToFile(std::ofstream& out) {
         SPDLOG_ERROR("Failed to open file : {}", std::to_string(out.tellp()));
         return false;
     }
-    std::vector<Vertex> modelVertex = m_cylinder->GetVertexVector();
-    std::vector<int> modelIndex = m_cylinder->GetIndexVector();
-    
-    int stride = m_cylinder->GetVertexBuffer()->GetCount();
-    std::vector<std::tuple<float, float, float>> v;
-    std::vector<std::tuple<float, float>> vt;
-    std::vector<std::tuple<float, float, float>> vn;
-    std::vector<std::tuple<int, int, int>> f;
-
-    for(int i=0; i<m_modelMatrices.size(); i++) {
-        int start = stride * i;
-        // vertex positions
-        auto matrix = m_modelMatrices[i] * glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -1.0f * m_cylinderHeight, 0.0f));
-        for (const auto& vertex : modelVertex) {
-            auto vertexAffine = glm::vec4(vertex.position.x, vertex.position.y, vertex.position.z, 1);
-            auto normalAffine = glm::vec4(vertex.normal.x, vertex.normal.y, vertex.normal.z, 0);
-            vertexAffine = matrix * vertexAffine;
-            normalAffine = matrix * normalAffine;
-
-            v.push_back(std::tuple<float, float, float>(vertexAffine.x, vertexAffine.y, vertexAffine.z));
-            vt.push_back(std::tuple<float, float>(vertex.texCoord.x, vertex.texCoord.y));
-            vn.push_back(std::tuple<float, float, float>(normalAffine.x, normalAffine.y, normalAffine.z));
-        }
-
-        // faces using indices
-        size_t indexCount = modelIndex.size();
-        for (size_t j = 0; j < indexCount; j += 3) {
-            uint32_t index1 = modelIndex[j] + start + 1;
-            uint32_t index2 = modelIndex[j+1] + start + 1;
-            uint32_t index3 = modelIndex[j+2] + start + 1;
-
-            f.push_back(std::tuple<int, int, int>(index1, index2, index3));
-        }
-    }
-
-    out << "# tree generator\n";
-    out << "o Cylinder\n";
-    out << "# vertex coordinates\n";
-    for(int i=0; i<v.size(); i++) {
-        out << "v " << std::get<0>(v[i]) << " " << std::get<1>(v[i]) << " " << std::get<2>(v[i]) << "\n";
-    }
-
-    out << "\n# texture coordinates\n";
-    for(int i=0; i<vt.size(); i++) {
-        out << "vt " << std::get<0>(vt[i]) << " " << std::get<1>(vt[i]) << "\n";
-    }
-
-    out << "\n# normal coordinates\n";
-    for(int i=0; i<vn.size(); i++) {
-        out << "vn " << std::get<0>(vn[i]) << " " << std::get<1>(vn[i]) << " " << std::get<2>(vn[i]) << "\n";
-    }
-
-    out << "\n# face\n";
-    for(int i=0; i<f.size(); i++) {
-        out << "f "
-                << std::get<0>(f[i]) << "/" << std::get<0>(f[i]) << "/" << std::get<0>(f[i]) << " "
-                << std::get<1>(f[i]) << "/" << std::get<1>(f[i]) << "/" << std::get<1>(f[i]) << " "
-                << std::get<2>(f[i]) << "/" << std::get<2>(f[i]) << "/" << std::get<2>(f[i])
-                << "\n";
-    }
-
-    v.clear();
-    vt.clear();
-    vn.clear();
-    f.clear();
-
-    std::vector<Vertex> leafVertex = m_leaf->GetVertexVector();
-    std::vector<int> leafIndex = m_leaf->GetIndexVector();
-    int leafStart = stride * m_modelMatrices.size();
-    
-    int leafStride = m_leaf->GetVertexBuffer()->GetCount();
-    for(int i = 0; i<m_leafMatrices.size(); i++) {
-        int start = leafStride * i;
-        // vertex positions
-        auto matrix = m_leafMatrices[i];
-        for (const auto& vertex : leafVertex) {
-            auto vertexAffine = glm::vec4(vertex.position.x, vertex.position.y, vertex.position.z, 1);
-            auto normalAffine = glm::vec4(vertex.normal.x, vertex.normal.y, vertex.normal.z, 0);
-            vertexAffine = matrix * vertexAffine;
-            normalAffine = matrix * normalAffine;
-
-            v.push_back(std::tuple<float, float, float>(vertexAffine.x, vertexAffine.y, vertexAffine.z));
-            vt.push_back(std::tuple<float, float>(vertex.texCoord.x, vertex.texCoord.y));
-            vn.push_back(std::tuple<float, float, float>(normalAffine.x, normalAffine.y, normalAffine.z));
-        }
-
-        // faces using indices
-        size_t indexCount = leafIndex.size();
-        for (size_t j = 0; j < indexCount; j += 3) {
-            uint32_t index1 = leafIndex[j] + leafStart + start + 1;
-            uint32_t index2 = leafIndex[j+1] + leafStart +start + 1;
-            uint32_t index3 = leafIndex[j+2] + leafStart + start + 1;
-
-            f.push_back(std::tuple<int, int, int>(index1, index2, index3));
-        }
-    }
-
-    out << "\no Leaf\n";
-    out << "# vertex coordinates\n";
-    for(int i=0; i<v.size(); i++) {
-        out << "v " << std::get<0>(v[i]) << " " << std::get<1>(v[i]) << " " << std::get<2>(v[i]) << "\n";
-    }
-
-    out << "\n# texture coordinates\n";
-    for(int i=0; i<vt.size(); i++) {
-        out << "vt " << std::get<0>(vt[i]) << " " << std::get<1>(vt[i]) << "\n";
-    }
-
-    out << "\n# normal coordinates\n";
-    for(int i=0; i<vn.size(); i++) {
-        out << "vn " << std::get<0>(vn[i]) << " " << std::get<1>(vn[i]) << " " << std::get<2>(vn[i]) << "\n";
-    }
-
-    out << "\n# face\n";
-    for(int i=0; i<f.size(); i++) {
-        out << "f "
-                << std::get<0>(f[i]) << "/" << std::get<0>(f[i]) << "/" << std::get<0>(f[i]) << " "
-                << std::get<1>(f[i]) << "/" << std::get<1>(f[i]) << "/" << std::get<1>(f[i]) << " "
-                << std::get<2>(f[i]) << "/" << std::get<2>(f[i]) << "/" << std::get<2>(f[i])
-                << "\n";
-    }
-
+    m_lsystem->ExportObj(out);
     return true;
 }
 
@@ -698,274 +487,17 @@ void Context::DrawObj(const glm::mat4& projection, const glm::mat4& view, const 
     }
 }
 
-// context.cpp
 void Context::DrawScene(const glm::mat4& projection, const glm::mat4& view, const Program* program) {
     // 바닥
     if(m_floor){
         program->Use();
         auto modelTransform =
-            glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -0.5f, 0.0f)) *
+            glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -1.0f, 0.0f)) *
             glm::scale(glm::mat4(1.0f), glm::vec3(10.0f, 1.0f, 10.0f));
         auto transform = projection * view * modelTransform;
         program->SetUniform("transform", transform);
         program->SetUniform("modelTransform", modelTransform);
         m_planeMaterial->SetToProgram(program);
         m_box->Draw(program);
-    }
-}
-
-// 회전 후 이동 -> 이동행렬 * 회전행렬 (순서)
-void Context::MakeMatrices() {
-    // 나뭇잎을 생성하는 위치를 결정하는 벡터
-    std::vector<glm::mat4> leafMatrices;
-    float randomAngle = 0.0f;
-    glm::mat4 scalingInverse;
-    auto drawLeaves = [&](glm::mat4 matrices, glm::mat4 scaling, char direction)-> void {
-        // double trigonTranslate = m_heightScaling * sin(randomAngle * M_PI / 180.0f) * (m_leafHeight / 2.0f);
-        // double trigonDown = (-1.0f) * (cos(randomAngle * M_PI / 180.0f) * (2.0f * m_leafRadius)
-        //     + (1.0f - m_heightScaling) / 2.0f * m_leafHeight);
-
-        // glm::mat4 rotateYMinus = 
-        //     glm::rotate(glm::mat4(1.0f), glm::radians(-1.0f * randomAngle), glm::vec3(0.0f, 1.0f, 0.0f));
-        // glm::mat4 rotateYPlus = 
-        //     glm::rotate(glm::mat4(1.0f), glm::radians(randomAngle), glm::vec3(0.0f, 1.0f, 0.0f));
-        // glm::mat4 rotateY180 = 
-        //     glm::rotate(glm::mat4(1.0f), glm::radians(180.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-
-        // glm::mat4 rotateXMinus = 
-        //     glm::rotate(glm::mat4(1.0f), glm::radians(-1.0f * randomAngle), glm::vec3(1.0f, 0.0f, 0.0f));
-        // glm::mat4 rotateXPlus = 
-        //     glm::rotate(glm::mat4(1.0f), glm::radians(randomAngle), glm::vec3(1.0f, 0.0f, 0.0f));
-
-        // glm::mat4 rotateZMinus = 
-        //     glm::rotate(glm::mat4(1.0f), glm::radians(-1.0f * randomAngle), glm::vec3(0.0f, 0.0f, 1.0f));
-        // glm::mat4 rotateZPlus = 
-        //     glm::rotate(glm::mat4(1.0f), glm::radians(randomAngle), glm::vec3(0.0f, 0.0f, 1.0f));
-
-        // glm::mat4 rotate;
-        // switch(direction){
-        // case 'F': case 'X': case 'A': case 'C':
-        //     break;
-
-        // case '+':
-        //     rotate = rotateYPlus;
-        //     break;
-        
-        // case '-':
-        //     rotate = rotateYMinus;
-        //     break;
-        
-        // case '^':
-        //     rotate = rotateXPlus;
-        //     break;
-
-        // case '&':
-        //     rotate = rotateXMinus;
-        //     break;
-
-        // case '<':
-        //     rotate = rotateZPlus;
-        //     break;
-
-        // case '>':
-        //     rotate = rotateZMinus;
-        //     break;
-
-        // case '|':
-        //     rotate = rotateY180;
-        //     break;
-        // }
-        auto translate = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, m_cylinderHeight / -2.0f, 0.0f));
-        
-        leafMatrices.push_back(matrices * translate * scaling);
-    };
-
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::normal_distribution<float> normalDistFrontGen(0.0f, 2.0f);
-    std::normal_distribution<float> normalDistEndGen(0.0f, 0.5f);
-    std::normal_distribution<float> normalDistAngle(m_angle, 2.0f);
-    std::uniform_real_distribution<float> uniformDist(m_heightScaling - 0.05f, m_heightScaling + 0.05f);
-
-    // 나뭇가지를 생성하는 위치를 결정하는 코드
-    MatrixStack stack; // 행렬 연산을 위한 스택
-    std::stack<int> stackCount; // pop 하는 수를 정하기 위한 스택
-
-    std::stack<char> direction; // 나뭇잎의 방향을 정하기 위한 스택
-    std::stack<int> directionCount; // 나뭇잎 방향 pop 하는 수 정하기 위한 스택
-
-    MatrixStack scalingStack; // 나뭇잎 크기 계산을 위함
-    std::stack<int> scalingCount;
-
-    stack.pushMatrix(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, m_cylinderHeight/1.7f, 0.0f)));
-    stackCount.push(0);
-    directionCount.push(0);
-    scalingCount.push(0);
-
-    int randomNum;
-    float weight = 1.5f;
-    std::vector<glm::mat4> modelMatrices;
-
-    int matrixTop = 0;
-    int directionTop = 0;
-    int scalingTop = 0;
-    auto matrixFunction = [&]()-> void {
-        matrixTop = stackCount.top();
-        matrixTop+=1;
-        stackCount.pop();
-        stackCount.push(matrixTop);
-
-        directionTop = directionCount.top();
-        directionTop+=1;
-        directionCount.pop();
-        directionCount.push(directionTop);
-    };
-
-    for(int i=0; i<m_codes.length(); i++){
-        randomAngle = normalDistAngle(gen);
-        switch(m_codes.at(i)){
-        case 'F': case 'X': case 'A': case 'C':
-            matrixTop = stackCount.top();
-            matrixTop+=1;
-            stackCount.pop();
-            stackCount.push(matrixTop);
-            // glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -1.0f * m_cylinderHeight, 0.0f));
-            stack.pushMatrix(glm::scale(glm::mat4(1.0f), glm::vec3(m_radiusScaling, m_heightScaling, m_radiusScaling)) *
-                glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, m_cylinderHeight * (m_heightScaling + 1.0f) / 2.2f, 0.0f))); // 방향
-            modelMatrices.push_back(stack.getCurrentMatrix());
-
-            scalingTop = scalingCount.top();
-            scalingTop+=1;
-            scalingCount.pop();
-            scalingCount.push(scalingTop);
-            // 역행렬이 무조건 존재한다고 가정
-            scalingInverse = glm::scale(glm::mat4(1.0f), glm::vec3(1.0f / m_radiusScaling,
-                1.0f / m_heightScaling, 1.0f / m_radiusScaling));
-            scalingStack.pushMatrix(scalingInverse);
-
-            randomNum = static_cast<int>(floor((normalDistFrontGen(gen))));
-            if(randomNum == 0 && !direction.empty() && !stack.isEmpty() && !scalingStack.isEmpty())
-                drawLeaves(stack.getCurrentMatrix(), scalingStack.getCurrentMatrix(), direction.top());
-            break;
-
-        case '+':
-            matrixFunction();
-            direction.push('+');
-            stack.pushMatrix(glm::rotate(glm::mat4(1.0f), glm::radians(randomAngle), glm::vec3(0.0f, 1.0f, 0.0f))); // 방향
-            break;
-
-        case '-':
-            matrixFunction();
-            direction.push('-');
-            stack.pushMatrix(glm::rotate(glm::mat4(1.0f), glm::radians(-1.0f * randomAngle), glm::vec3(0.0f, 1.0f, 0.0f))); // 방향
-            break;
-
-        case '^':
-            matrixFunction();
-            direction.push('^');
-            stack.pushMatrix(glm::rotate(glm::mat4(1.0f), glm::radians(randomAngle), glm::vec3(1.0f, 0.0f, 0.0f)) *
-                glm::translate(glm::mat4(1.0f), glm::vec3(
-                    0.0f, 0.0f, weight * sin(randomAngle * M_PI / 180.0f) * (m_cylinderHeight/2.0f)))); // 방향
-            break;
-
-        case '&':
-            matrixFunction();
-            direction.push('&');
-            stack.pushMatrix(glm::rotate(glm::mat4(1.0f), glm::radians(-1.0f * randomAngle), glm::vec3(1.0f, 0.0f, 0.0f)) * 
-                glm::translate(glm::mat4(1.0f),glm::vec3(
-                0.0f, 0.0f,-1.0 * weight *sin(randomAngle * M_PI / 180.0f) * (m_cylinderHeight/2.0f)))); // 방향
-            break;
-
-        case '<':
-            matrixFunction();
-            direction.push('<');
-            stack.pushMatrix(glm::rotate(glm::mat4(1.0f), glm::radians(randomAngle), glm::vec3(0.0f, 0.0f, 1.0f)) *
-                glm::translate(glm::mat4(1.0f), glm::vec3(
-                -1.0 * weight * sin(randomAngle * M_PI / 180.0f) * (m_cylinderHeight/2.0f), 0.0f, 0.0f))); // 방향
-            break;
-
-        case '>':
-            matrixFunction();
-            direction.push('>');
-            stack.pushMatrix(glm::rotate(glm::mat4(1.0f), glm::radians(-1.0f * randomAngle), glm::vec3(0.0f, 0.0f, 1.0f)) * 
-                glm::translate(glm::mat4(1.0f), glm::vec3(
-                weight * sin(randomAngle * M_PI / 180.0f) * (m_cylinderHeight/2.0f), 0.0f, 0.0f))); // 방향
-            break;
-
-        case '|':
-            matrixFunction();
-            direction.push('|');
-            stack.pushMatrix(glm::rotate(glm::mat4(1.0f), glm::radians(180.0f), glm::vec3(0.0f, 1.0f, 0.0f))); // 방향
-            break;
-
-        case '[':
-            stackCount.push(0);
-            directionCount.push(0);
-            scalingCount.push(0);
-            break;
-
-        case ']':
-            if(m_codes.at(i-1) == 'X' || m_codes.at(i-1) == 'F' || m_codes.at(i-1) == 'A' || m_codes.at(i-1) == 'C') {
-                drawLeaves(stack.getCurrentMatrix(), scalingStack.getCurrentMatrix(), direction.top());
-            }
-                
-            for(int i=0; i<stackCount.top(); i++)
-                stack.popMatrix();
-            for(int i=0; i<directionCount.top(); i++)
-                direction.pop();
-            for(int i=0; i<scalingCount.top(); i++)
-                scalingStack.popMatrix();
-
-            stackCount.pop();
-            directionCount.pop();
-            scalingCount.pop();
-            break;
-        }
-    }
-    m_modelMatrices.clear();
-    m_leafMatrices.clear();
-    m_modelMatrices = modelMatrices;
-    m_leafMatrices = leafMatrices;
-}
-
-void Context::SetRules() {
-    m_stochastic = false;
-
-    switch(m_currentItem) {
-    case CUSTOM_RULES:
-
-        break;
-
-    case ARROW_TREE:
-        strcpy_s(m_gui_axiom, sizeof(m_gui_axiom), "FFA");
-        strcpy_s(m_gui_rules, sizeof(m_gui_rules),
-            "A=F[--&&&FC][++&&&FC][--^FC][++^FC]\n"
-            "C=F[--<&&FC]||[++>&&FC]||[+<^^FC]||[->^^FC]");
-        break;
-
-    case STOCHASTIC:
-        strcpy_s(m_gui_axiom, sizeof(m_gui_axiom), "FFA");
-        strcpy_s(m_gui_rules, sizeof(m_gui_rules),
-            "A=F[--&&&FFC][++&&&FC][--^FC][++^FFC]\n"\
-            "A=F[--&&&FC][++&&&FFC][--^FFC][++^FC]\n"\
-            "C=FF[--<&&FC]||[++>&&FFC]||[+<^^FC]||[->^^FFC]\n"\
-            "C=F[--<&&FFC]||[++>&&FC]||[+<^^FFC]||[->^^FC]");
-        m_stochastic = true;
-        break;
-
-    case SKEWED_TREE:
-        strcpy_s(m_gui_axiom, sizeof(m_gui_axiom), "FFA");
-        strcpy_s(m_gui_rules, sizeof(m_gui_rules),
-            "A=F[<F[&C][^C]][<F[&&C][&C]][>F[&C][^C]]\n"
-            "C=F[--<&&FC]||[++>&&FC]||[+<^^FC]||[->^^FC]");
-        break;
-
-    case BINARYTREE:
-        strcpy_s(m_gui_axiom, sizeof(m_gui_axiom), "X");
-        strcpy_s(m_gui_rules, sizeof(m_gui_rules), "X=F[<X][>X]");
-        break;
-
-    default:
-        break;
     }
 }

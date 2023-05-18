@@ -12,12 +12,9 @@
 #include "framebuffer.h"
 #include "shadow_map.h"
 #include "matrix_stack.h"
-#define _USE_MATH_DEFINES
-#include <math.h>
+#include "lsystem.h"
 #include <imgui.h>
 #include "imfilebrowser.h"
-#include <string>
-#include <vector>
 
 CLASS_PTR(Context)
 class Context{
@@ -32,18 +29,11 @@ public:
     void DrawScene(const glm::mat4& projection, const glm::mat4& view, const Program* program);
     void DrawObj(const glm::mat4& projection, const glm::mat4& view, const Program* program);
     void DrawTree(const glm::mat4& projection, const glm::mat4& view, const Program* treeProgram, const Program* leafProgram);
-    // void DrawLeaves(const glm::mat4& projection, const glm::mat4& view,
-    //     const glm::mat4 modelTransform, const Program* program, char direction);
-    // void DrawCylinder(const glm::mat4& projection, const glm::mat4 view,
-    //     const glm::mat4 modelTransform, const Program* program);
 
 private:
     Context(){}
     bool Init();
-
     void Clear();
-    std::string MakeCodes();
-    void MakeMatrices();
     void OpenObject(ImGui::FileBrowser file);
     void SaveObject(ImGui::FileBrowser file);
     bool WriteToFile(std::ofstream& out);
@@ -54,15 +44,50 @@ private:
     ProgramUPtr m_textureProgram;
     ProgramUPtr m_postProgram;
     ProgramUPtr m_objProgram;
-    float m_gamma { 0.85f };
-
     MeshUPtr m_box;
-    MeshUPtr m_plane;
-    MeshUPtr m_cylinder;
-    MeshUPtr m_leaf;
 
-    // clear color
-    glm::vec4 m_clearColor { glm::vec4(0.1f, 0.2f, 0.3f, 0.0f) };
+    // tree program
+    ProgramUPtr m_leafProgram;
+    ProgramUPtr m_logProgram;
+
+
+    // material parameter
+    MaterialPtr m_planeMaterial;
+    MaterialPtr m_box1Material;
+    MaterialPtr m_branchMaterial;
+    MaterialPtr m_leafMaterial;
+    MaterialPtr m_objMaterial;
+
+    // framebuffer
+    FramebufferUPtr m_framebuffer;
+
+    ModelUPtr m_model;
+    TexturePtr m_modelTexture;
+
+    // cubemap
+    CubeTextureUPtr m_cubeTexture;
+    ProgramUPtr m_skyboxProgram;
+    ProgramUPtr m_envMapProgram;
+
+    // shadow map
+    ShadowMapUPtr m_shadowMap;
+    ProgramUPtr m_lightingShadowProgram;
+
+    // tree
+    bool m_newCodes { false };
+    bool m_stochastic { false };
+    int m_iteration { 3 };
+
+    float m_cylinderRadius { 0.1f };
+    float m_cylinderHeight { 1.0f };
+    float m_leafRadius { 0.2f };
+    float m_leafHeight { 0.2f };
+    float m_radiusScaling { 0.75f };
+    float m_heightScaling { 0.75f };
+    float m_angle { 30.0f };
+    std::vector<float> m_treeParam { m_cylinderRadius, m_cylinderHeight, m_leafRadius, m_leafHeight, m_radiusScaling, m_heightScaling };
+    LSystemUPtr m_lsystem;
+    LSystemUPtr m_lsystem2;
 
     // light parameter
     struct Light {
@@ -78,12 +103,8 @@ private:
     Light m_light;
     bool m_blinn { false };
 
-    // material parameter
-    MaterialPtr m_planeMaterial;
-    MaterialPtr m_box1Material;
-    MaterialPtr m_branchMaterial;
-    MaterialPtr m_leafMaterial;
-    MaterialPtr m_objMaterial;
+    // clear color
+    glm::vec4 m_clearColor { glm::vec4(0.1f, 0.2f, 0.3f, 0.0f) };
 
     // camera parameter
     bool m_cameraControl { false };
@@ -93,48 +114,8 @@ private:
     glm::vec3 m_cameraPos { glm::vec3(0.0f, 4.0f, 12.0f) };
     glm::vec3 m_cameraFront { glm::vec3(0.0f, 0.0f, -1.0f) };
     glm::vec3 m_cameraUp { glm::vec3(0.0f, 1.0f, 0.0f) };
-
-    // framebuffer
-    FramebufferUPtr m_framebuffer;
-
-    // cubemap
-    CubeTextureUPtr m_cubeTexture;
-    ProgramUPtr m_skyboxProgram;
-    ProgramUPtr m_envMapProgram;
-
-    // shadow map
-    ShadowMapUPtr m_shadowMap;
-    ProgramUPtr m_lightingShadowProgram;
-
-    // cylinder length;
-    float m_cylinderRadius { 0.1f };
-    float m_cylinderHeight { 1.0f };
-    float m_leafRadius { 0.2f };
-    float m_leafHeight { 0.2f };
-    float m_radiusScaling { 0.75f };
-    float m_heightScaling { 0.75f };
-
-    ProgramUPtr m_cylinderProgram;
-    BufferUPtr m_cylinderPosBuffer;
-    VertexLayoutUPtr m_cylinderInstance;
-    TexturePtr m_cylinderTexture;
-    
-    ProgramUPtr m_leafProgram;
-    BufferUPtr m_leafPosBuffer;
-    VertexLayoutUPtr m_leafInstance;
-    TexturePtr m_leafTexture;
-    TexturePtr m_treeTexture;
-    TexturePtr m_brownTexture;
-
-    // tree
-    float m_angle { 30.0f };
-    bool m_newCodes { false };
-    bool m_stochastic { false };
-    std::vector<std::string> m_codesVector;
-    std::vector<glm::mat4> m_modelMatrices;
-    std::vector<glm::mat4> m_leafMatrices;
-    std::string m_codes;
-    int m_iteration { 3 };
+    bool m_floor { true };
+    bool m_scenery { true };
 
     // tree gui
     float m_gui_angle { m_angle };
@@ -146,28 +127,25 @@ private:
     char m_gui_rules[1024 * 4] = {
         "A=F[--&&&FC][++&&&FC][--^FC][++^FC]\n"
         "C=F[--<&&FC]||[++>&&FC]||[+<^^FC]||[->^^FC]" };
+    std::string m_axiom { m_gui_axiom };
+    std::string m_rules { m_gui_rules };
 
     enum Rule {
         CUSTOM_RULES,
         ARROW_TREE,
         STOCHASTIC,
-        SKEWED_TREE,
+        BUSH_LIKE,
         BINARYTREE,
         NUM_RULES
     };
-    char* m_comboItems[NUM_RULES] { "custom rules", "arrow tree", "stochastic", "skewed tree", "binary tree" };
+    char* m_comboItems[NUM_RULES] { "custom rules", "arrow tree", "stochastic", "bush-like", "binary tree" };
     int m_currentItem = ARROW_TREE;
-
-    std::string m_axiom { m_gui_axiom };
-    std::string m_rules { m_gui_rules };
 
     ImGui::FileBrowser m_fileDialogOpen;
     ImGui::FileBrowser m_fileDialogSave {ImGuiFileBrowserFlags_SelectDirectory | ImGuiFileBrowserFlags_EnterNewFilename};
-    ModelUPtr m_model;
-    TexturePtr m_modelTexture;
 
-    bool m_floor { true };
-    bool m_scenery { true };
+    ImVec2 m_UIPos { 3.0f, 25.0f };
+    ImVec2 m_treePos { 1241.0f, 25.0f };
 
     int m_width { WINDOW_WIDTH };
     int m_height { WINDOW_HEIGHT };

@@ -8,6 +8,7 @@
 
 class MatrixStack {
 public:
+    MatrixStack(float x, float z);
     MatrixStack();
     void pushMatrix(const glm::mat4 matrix);
     void popMatrix();

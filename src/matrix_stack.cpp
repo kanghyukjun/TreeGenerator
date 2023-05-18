@@ -1,7 +1,11 @@
 #include "matrix_stack.h"
 
 // 4x4 identity 행렬로 초기화
-MatrixStack::MatrixStack(){
+MatrixStack::MatrixStack(float x, float z) {
+    matrixStack.push(glm::translate(glm::mat4(1.0f), glm::vec3(x, 0.0f, z)));
+}
+
+MatrixStack::MatrixStack() {
     matrixStack.push(glm::mat4(1.0f));
 }
 
