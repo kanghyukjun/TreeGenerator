@@ -1,16 +1,16 @@
 #include "lsystem.h"
 
 LSystemUPtr LSystem::Create(std::string axiom, std::string rules, std::vector<float> treeParam, float angle, int iteration,
-        float xCoord, float zCoord, bool stochastic) {
+        float xCoord, float zCoord) {
     auto lsystem = LSystemUPtr(new LSystem());
-    if(!lsystem->Init(axiom, rules, treeParam, angle, iteration, xCoord, zCoord, stochastic))
+    if(!lsystem->Init(axiom, rules, treeParam, angle, iteration, xCoord, zCoord))
         return nullptr;
     
     return std::move(lsystem);
 }
 
 bool LSystem::Init(std::string axiom, std::string rules, std::vector<float> treeParam, float angle, int iteration,
-    float xCoord, float zCoord, bool stochastic) {
+    float xCoord, float zCoord) {
     if(treeParam.size() < 6) return false;
     else if(treeParam[4] <= 0.0f && treeParam[5] <= 0.0f) return false;
 
@@ -26,7 +26,6 @@ bool LSystem::Init(std::string axiom, std::string rules, std::vector<float> tree
 
     m_angle = angle;
     m_iteration = iteration;
-    m_stochastic = stochastic;
     m_xCoord = xCoord;
     m_zCoord = zCoord;
 
@@ -37,9 +36,9 @@ bool LSystem::Init(std::string axiom, std::string rules, std::vector<float> tree
     }
 
     m_codes = MakeCodes();
-    m_cylinderHeight *= 1.2f;
-    m_cylinderRadius *= 1.3f;
-    MakeCylinderMatrices();
+    // m_cylinderHeight *= 1.2f;
+    // m_cylinderRadius *= 1.3f;
+    MakeCylinderMatrices(m_xCoord, m_zCoord);
 
     m_log = Mesh::CreateCylinder(m_cylinderRadius, m_cylinderHeight, m_radiusScaling);
     m_leaf = Mesh::CreateLeaf(m_leafRadius, m_leafHeight);
@@ -51,54 +50,60 @@ bool LSystem::Init(std::string axiom, std::string rules, std::vector<float> tree
 }
 
 std::string LSystem::MakeCodes() {
+    std::random_device rd; // 시드로 사용할 장치
+    std::mt19937 gen(rd()); // 난수 엔진
+
+    std::string tmp;
+
+    std::vector<std::string> F;
+    std::vector<std::string> X;
+    std::vector<std::string> A;
+    std::vector<std::string> C;
+    
+    for(int i=0; i<m_codesVector.size(); i++) {
+        tmp = m_codesVector[i];
+        std::size_t pos = tmp.rfind('=');
+        if(pos == std::string::npos) continue;
+
+        std::string condition = tmp.substr(0, pos);
+        std::string replace = tmp.substr(pos + 1);
+
+        if(condition.compare("F") == 0)
+            F.push_back(replace);
+        else if(condition.compare("X") == 0)
+            X.push_back(replace);
+        else if(condition.compare("A") == 0)
+            A.push_back(replace);
+        else if(condition.compare("C") == 0)
+            C.push_back(replace);
+    }
+
     std::string result = m_axiom;
-
-    if(m_stochastic) {
-        std::string new_str;
-        std::default_random_engine rng(std::random_device{}());
-        for (int i = 0; i < m_codesVector.size(); i += 2) {
-            std::string tmp1 = m_codesVector.at(i);
-            std::string tmp2 = m_codesVector.at(i + 1);
-
-            std::size_t pos1 = tmp1.rfind('=');
-            std::size_t pos2 = tmp2.rfind('=');
-
-            std::string condition1 = tmp1.substr(0, pos1);
-            std::string replace1 = tmp1.substr(pos1 + 1);
-            std::string condition2 = tmp2.substr(0, pos2);
-            std::string replace2 = tmp2.substr(pos2 + 1);
-
-            std::uniform_real_distribution<double> dist(0.0, 1.0);
-            for(int j = 0; j < m_iteration; j++) {
-                size_t pos = 0;
-                while ((pos = result.find(condition1, pos)) != std::string::npos) {
-                    double prob = dist(rng);
-                    if (prob < 0.5) {
-                        new_str = replace1;
-                    } else {
-                        new_str = replace2;
-                    }
-                    result.replace(pos, condition1.length(), new_str);
-                    pos += new_str.length();
-                }
+    std::string new_str;
+    auto ReplaceString = [&](char replace, std::vector<std::string> vector) {
+        size_t pos = 0;
+        while ((pos = result.find(replace, pos)) != std::string::npos) {
+            if(vector.empty()) break;
+            else if(vector.size() == 1) {
+                new_str = vector[0];
             }
+            else {
+                std::uniform_int_distribution<> dis(0, vector.size() - 1); // 범위 설정
+                int randomIndex = dis(gen);
+                new_str = vector[randomIndex];
+            }
+            result.replace(pos, 1, new_str);
+            pos += new_str.length();
         }
-    }
-    else {
-        std::string tmp;
-        for(int i=0; i<m_codesVector.size(); i++){
-            tmp = m_codesVector.at(i);
-            std::size_t pos = tmp.rfind('=');
+    };
 
-            std::string condition = tmp.substr(0, pos);
-            std::string replace = tmp.substr(pos + 1);
-            
-            // 이 부분에서 한번 iteration이 돌아갈 때마다 무작위로 문자 치환을 하고싶음
-            for(int j=0; j<m_iteration; j++)
-                result = std::regex_replace(result, std::regex(condition), replace);
-        }
+    for(int i = 0; i < m_iteration; i++) {
+        ReplaceString('F', F);
+        ReplaceString('X', X);
+        ReplaceString('A', A);
+        ReplaceString('C', C);
     }
-    // SPDLOG_INFO("string: {}", result);
+
     return result;
 }
 
@@ -108,7 +113,7 @@ void LSystem::MakeLeafMatrices(glm::mat4 matrices, glm::mat4 scaling, std::vecto
 }
 
 // 회전 후 이동 -> 이동행렬 * 회전행렬 (순서)
-void LSystem::MakeCylinderMatrices() {
+void LSystem::MakeCylinderMatrices(float xCoord, float zCoord) {
     std::random_device rd;
     std::mt19937 gen(rd());
     std::normal_distribution<float> normalDistFrontGen(0.0f, 2.0f);
@@ -117,7 +122,7 @@ void LSystem::MakeCylinderMatrices() {
     std::uniform_real_distribution<float> uniformDist(m_heightScaling - 0.05f, m_heightScaling + 0.05f);
 
     // 나뭇가지를 생성하는 위치를 결정하는 코드
-    MatrixStack stack(m_xCoord, m_zCoord); // 행렬 연산을 위한 스택
+    MatrixStack stack(xCoord, zCoord); // 행렬 연산을 위한 스택
     std::stack<int> stackCount; // pop 하는 수를 정하기 위한 스택
 
     MatrixStack scalingStack; // 나뭇잎 크기 계산을 위함
@@ -266,6 +271,14 @@ void LSystem::Draw(const glm::mat4& projection, const glm::mat4& view, const Pro
             m_leaf->Draw(leafProgram);
         }
     }
+}
+
+void LSystem::Move(float xCoord, float zCoord) {
+    if(xCoord == m_xCoord && zCoord == m_zCoord) return;
+
+    m_xCoord = xCoord;
+    m_zCoord = zCoord;
+    MakeCylinderMatrices(xCoord, zCoord);
 }
 
 bool LSystem::ExportObj(std::ofstream& out) {

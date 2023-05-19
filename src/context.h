@@ -75,7 +75,6 @@ private:
 
     // tree
     bool m_newCodes { false };
-    bool m_stochastic { false };
     int m_iteration { 3 };
 
     float m_cylinderRadius { 0.1f };

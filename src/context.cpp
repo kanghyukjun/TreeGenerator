@@ -140,7 +140,7 @@ bool Context::Init(){
     if(!m_lsystem) return false;
 
     m_lsystem2 = LSystem::Create("X", "X=F[<X][>X]", m_treeParam, m_angle, 3, 2.0f, 2.0f);
-
+    m_lsystem2->Move(-2.0f, -2.0f);
     return true;
 }
 
@@ -264,7 +264,7 @@ void Context::Render() {
         glm::perspective(glm::radians((m_light.cutoff[0] + m_light.cutoff[1]) * 2.0f), 1.0f, 1.0f, 20.0f);
 
     if(m_newCodes){
-        m_lsystem = LSystem::Create(m_gui_axiom, m_gui_rules, m_treeParam, m_angle, m_iteration, m_stochastic);
+        m_lsystem = LSystem::Create(m_gui_axiom, m_gui_rules, m_treeParam, m_angle, m_iteration);
         m_newCodes = false;
     }
 
@@ -349,8 +349,6 @@ void Context::Render() {
 }
 
 void Context::SetRules() {
-    m_stochastic = false;
-
     switch(m_currentItem) {
     case CUSTOM_RULES:
 
@@ -370,7 +368,6 @@ void Context::SetRules() {
             "A=F----[&&FC]----[&&FC]----[^FC]----[^FC]\n"\
             "C=|F[--<&&FC]||[++>&&FFC]||[+<^^FC]||[->^^FFC]\n"\
             "C=F[--<&&FFC]||[++>&&FC]||[+<^^FFC]||[->^^FC]");
-        m_stochastic = true;
         break;
 
     case BUSH_LIKE:

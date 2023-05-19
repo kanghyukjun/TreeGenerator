@@ -15,30 +15,28 @@
 #include <vector>
 #include <fstream>
 
+
+// "이동"에 사용되는 문자 : F, X, A, C
 CLASS_PTR(LSystem);
 class LSystem {
 public:
     // std::vector {cylinderRadius, cylinderHeight, leafRadius, leafHeight, radiusScaling, heightScaling}
     static LSystemUPtr Create(std::string axiom, std::string rules, std::vector<float> treeParam, float angle, int iteration,
-        float xCoord = 0.0f, float zCoord = 0.0f, bool stochastic = false);
+        float xCoord = 0.0f, float zCoord = 0.0f);
     std::string GetAxiom() { return m_axiom; }
     std::string GetRules() { return m_rules; }
-    int GetIteration() { return m_iteration; }
     std::string GetCodes() { return m_codes; }
-    std::vector<glm::mat4> GetCylinderVector() { return m_cylinderVector; }
-    std::vector<glm::mat4> GetLeafVector() { return m_leafVector; }
-    std::vector<std::string> GetCodeVector() { return m_codesVector; }
-    float GetCylinderHeight() { return m_cylinderHeight; }
     bool isEmpty() { return m_codes.empty(); }
     void Draw(const glm::mat4& projection, const glm::mat4& view, const Program* treeProgram, const Program* leafProgram) const;
+    void Move(float xCoord, float zCoord);
     bool ExportObj(std::ofstream& out);
 
 private:
     LSystem() {};
     bool Init(std::string axiom, std::string rules, std::vector<float> treeParam, float angle, int iteration,
-        float zCoord, float xCoord, bool stochastic);
+        float zCoord, float xCoord);
     std::string MakeCodes();
-    void MakeCylinderMatrices();
+    void MakeCylinderMatrices(float xCoord = 0.0f, float zCoord = 0.0f);
     void MakeLeafMatrices(glm::mat4 matrices, glm::mat4 scaling, std::vector<glm::mat4>& vector);
 
     MeshUPtr m_log;
@@ -61,7 +59,6 @@ private:
 
     float m_angle;
     int m_iteration;
-    bool m_stochastic;
 
     float m_xCoord;
     float m_zCoord;
