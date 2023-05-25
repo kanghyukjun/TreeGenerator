@@ -22,7 +22,7 @@ class LSystem {
 public:
     // std::vector {cylinderRadius, cylinderHeight, leafRadius, leafHeight, radiusScaling, heightScaling}
     static LSystemUPtr Create(std::string axiom, std::string rules, std::vector<float> treeParam, float angle, int iteration,
-        float xCoord = 0.0f, float zCoord = 0.0f);
+        bool sphere = false, float xCoord = 0.0f, float zCoord = 0.0f);
     std::string GetAxiom() { return m_axiom; }
     std::string GetRules() { return m_rules; }
     std::string GetCodes() { return m_codes; }
@@ -34,15 +34,17 @@ public:
 private:
     LSystem() {};
     bool Init(std::string axiom, std::string rules, std::vector<float> treeParam, float angle, int iteration,
-        float zCoord, float xCoord);
+        bool sphere, float zCoord, float xCoord);
     std::string MakeCodes();
     void MakeCylinderMatrices(float xCoord = 0.0f, float zCoord = 0.0f);
     void MakeLeafMatrices(glm::mat4 matrices, glm::mat4 scaling, std::vector<glm::mat4>& vector);
 
     MeshUPtr m_log;
     MeshUPtr m_leaf;
+    MeshUPtr m_sphere;
 
     TexturePtr m_leafTexture;
+    TexturePtr m_greenTexture;
     TexturePtr m_treeTexture;
 
     std::vector<glm::mat4> m_cylinderVector;
@@ -59,6 +61,7 @@ private:
 
     float m_angle;
     int m_iteration;
+    bool m_isSphere;
 
     float m_xCoord;
     float m_zCoord;

@@ -1,16 +1,16 @@
 #include "lsystem.h"
 
 LSystemUPtr LSystem::Create(std::string axiom, std::string rules, std::vector<float> treeParam, float angle, int iteration,
-        float xCoord, float zCoord) {
+        bool sphere, float xCoord, float zCoord) {
     auto lsystem = LSystemUPtr(new LSystem());
-    if(!lsystem->Init(axiom, rules, treeParam, angle, iteration, xCoord, zCoord))
+    if(!lsystem->Init(axiom, rules, treeParam, angle, iteration, sphere, xCoord, zCoord))
         return nullptr;
     
     return std::move(lsystem);
 }
 
 bool LSystem::Init(std::string axiom, std::string rules, std::vector<float> treeParam, float angle, int iteration,
-    float xCoord, float zCoord) {
+    bool sphere, float xCoord, float zCoord) {
     if(treeParam.size() < 6) return false;
     else if(treeParam[4] <= 0.0f && treeParam[5] <= 0.0f) return false;
 
@@ -26,6 +26,8 @@ bool LSystem::Init(std::string axiom, std::string rules, std::vector<float> tree
 
     m_angle = angle;
     m_iteration = iteration;
+    m_isSphere = sphere;
+
     m_xCoord = xCoord;
     m_zCoord = zCoord;
 
@@ -42,8 +44,10 @@ bool LSystem::Init(std::string axiom, std::string rules, std::vector<float> tree
 
     m_log = Mesh::CreateCylinder(m_cylinderRadius, m_cylinderHeight, m_radiusScaling);
     m_leaf = Mesh::CreateLeaf(m_leafRadius, m_leafHeight);
+    m_sphere = Mesh::CreateSphere(m_leafRadius);
 
     m_leafTexture = Texture::CreateFromImage(Image::Load("./image/leaf2.png").get());
+    m_greenTexture = Texture::CreateFromImage(Image::CreateSingleColorImage(4, 4, glm::vec4(0.27f, 0.334f, 0.118f, 1.0f)).get());
     m_treeTexture = Texture::CreateFromImage(Image::Load("./image/tree.png").get());
 
     return true;
@@ -108,7 +112,9 @@ std::string LSystem::MakeCodes() {
 }
 
 void LSystem::MakeLeafMatrices(glm::mat4 matrices, glm::mat4 scaling, std::vector<glm::mat4>& vector) {
-    auto translate = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, m_cylinderHeight / -2.0f, 0.0f));
+    glm::mat4 translate;
+    if(m_isSphere) translate = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, m_cylinderRadius / -2.0f, 0.0f));
+    else translate = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, m_cylinderHeight / -2.0f, 0.0f));
     vector.push_back(matrices * translate * scaling);
 }
 
@@ -263,12 +269,19 @@ void LSystem::Draw(const glm::mat4& projection, const glm::mat4& view, const Pro
 
         leafProgram->Use();
         leafProgram->SetUniform("tex", 0);
-        m_treeTexture->Bind();
-        for(int i=0; i<m_leafVector.size(); i++){
-            leafProgram->SetUniform("transform", projection * view * m_leafVector[i]);
-            // leafProgram->SetUniform("color", glm::vec3(0.2f, 0.6f, 0.2f));
-            // leafProgram->SetUniform("modelTransform", m_leafMatrices[i]);
-            m_leaf->Draw(leafProgram);
+        if(m_isSphere) {
+            m_greenTexture->Bind();
+            for(int i=0; i<m_leafVector.size(); i++){
+                leafProgram->SetUniform("transform", projection * view * m_leafVector[i]);
+                m_sphere->Draw(leafProgram);
+            }
+        }
+        else {
+            m_treeTexture->Bind();
+            for(int i=0; i<m_leafVector.size(); i++){
+                leafProgram->SetUniform("transform", projection * view * m_leafVector[i]);
+                m_leaf->Draw(leafProgram);
+            }
         }
     }
 }
@@ -353,34 +366,68 @@ bool LSystem::ExportObj(std::ofstream& out) {
     vn.clear();
     f.clear();
 
-    std::vector<Vertex> leafVertex = m_leaf->GetVertexVector();
-    std::vector<int> leafIndex = m_leaf->GetIndexVector();
-    int leafStart = stride * m_cylinderVector.size();
-    
-    int leafStride = m_leaf->GetVertexBuffer()->GetCount();
-    for(int i = 0; i<m_leafVector.size(); i++) {
-        int start = leafStride * i;
-        // vertex positions
-        auto matrix = m_leafVector[i];
-        for (const auto& vertex : leafVertex) {
-            auto vertexAffine = glm::vec4(vertex.position.x, vertex.position.y, vertex.position.z, 1);
-            auto normalAffine = glm::vec4(vertex.normal.x, vertex.normal.y, vertex.normal.z, 0);
-            vertexAffine = matrix * vertexAffine;
-            normalAffine = matrix * normalAffine;
+    if(m_isSphere) {
+        std::vector<Vertex> sphereVertex = m_sphere->GetVertexVector();
+        std::vector<int> sphereIndex = m_sphere->GetIndexVector();
+        int sphereStart = stride * m_cylinderVector.size();
 
-            v.push_back(std::tuple<float, float, float>(vertexAffine.x, vertexAffine.y, vertexAffine.z));
-            vt.push_back(std::tuple<float, float>(vertex.texCoord.x, vertex.texCoord.y));
-            vn.push_back(std::tuple<float, float, float>(normalAffine.x, normalAffine.y, normalAffine.z));
+        int sphereStride = m_sphere->GetVertexBuffer()->GetCount();
+        for(int i = 0; i < m_leafVector.size(); i++) {
+            int start = sphereStride * i;
+            // vertex positions
+            auto matrix = m_leafVector[i];
+            for (const auto& vertex : sphereVertex) {
+                auto vertexAffine = glm::vec4(vertex.position.x, vertex.position.y, vertex.position.z, 1);
+                auto normalAffine = glm::vec4(vertex.normal.x, vertex.normal.y, vertex.normal.z, 0);
+                vertexAffine = matrix * vertexAffine;
+                normalAffine = matrix * normalAffine;
+
+                v.push_back(std::tuple<float, float, float>(vertexAffine.x, vertexAffine.y, vertexAffine.z));
+                vt.push_back(std::tuple<float, float>(vertex.texCoord.x, vertex.texCoord.y));
+                vn.push_back(std::tuple<float, float, float>(normalAffine.x, normalAffine.y, normalAffine.z));
+            }
+
+            // faces using indices
+            size_t indexCount = sphereIndex.size();
+            for (size_t j = 0; j < indexCount; j += 3) {
+                uint32_t index1 = sphereIndex[j] + sphereStart + start + 1;
+                uint32_t index2 = sphereIndex[j+1] + sphereStart + start + 1;
+                uint32_t index3 = sphereIndex[j+2] + sphereStart + start + 1;
+
+                f.push_back(std::tuple<int, int, int>(index1, index2, index3));
+            }
         }
+    }
+    else {
+        std::vector<Vertex> leafVertex = m_leaf->GetVertexVector();
+        std::vector<int> leafIndex = m_leaf->GetIndexVector();
+        int leafStart = stride * m_cylinderVector.size();
+        
+        int leafStride = m_leaf->GetVertexBuffer()->GetCount();
+        for(int i = 0; i<m_leafVector.size(); i++) {
+            int start = leafStride * i;
+            // vertex positions
+            auto matrix = m_leafVector[i];
+            for (const auto& vertex : leafVertex) {
+                auto vertexAffine = glm::vec4(vertex.position.x, vertex.position.y, vertex.position.z, 1);
+                auto normalAffine = glm::vec4(vertex.normal.x, vertex.normal.y, vertex.normal.z, 0);
+                vertexAffine = matrix * vertexAffine;
+                normalAffine = matrix * normalAffine;
 
-        // faces using indices
-        size_t indexCount = leafIndex.size();
-        for (size_t j = 0; j < indexCount; j += 3) {
-            uint32_t index1 = leafIndex[j] + leafStart + start + 1;
-            uint32_t index2 = leafIndex[j+1] + leafStart +start + 1;
-            uint32_t index3 = leafIndex[j+2] + leafStart + start + 1;
+                v.push_back(std::tuple<float, float, float>(vertexAffine.x, vertexAffine.y, vertexAffine.z));
+                vt.push_back(std::tuple<float, float>(vertex.texCoord.x, vertex.texCoord.y));
+                vn.push_back(std::tuple<float, float, float>(normalAffine.x, normalAffine.y, normalAffine.z));
+            }
 
-            f.push_back(std::tuple<int, int, int>(index1, index2, index3));
+            // faces using indices
+            size_t indexCount = leafIndex.size();
+            for (size_t j = 0; j < indexCount; j += 3) {
+                uint32_t index1 = leafIndex[j] + leafStart + start + 1;
+                uint32_t index2 = leafIndex[j+1] + leafStart + start + 1;
+                uint32_t index3 = leafIndex[j+2] + leafStart + start + 1;
+
+                f.push_back(std::tuple<int, int, int>(index1, index2, index3));
+            }
         }
     }
 

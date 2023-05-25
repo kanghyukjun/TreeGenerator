@@ -96,12 +96,14 @@ bool Context::Init(){
     m_logProgram = Program::Create("./shader/cylinder.vs", "./shader/cylinder.fs");
     if(!m_logProgram) return false;
 
-    
     m_leafProgram = Program::Create("./shader/leaf.vs", "./shader/leaf.fs");
     if(!m_leafProgram) return false;
 
     m_objProgram = Program::Create("./shader/obj.vs", "./shader/obj.fs");
     if(!m_objProgram) return false;
+
+    m_normalProgram = Program::Create("./shader/normal.vs", "./shader/normal.fs");
+    if(!m_normalProgram) return false;
 
     glClearColor(0.0f, 0.1f, 0.2f, 0.0f);
 
@@ -141,6 +143,7 @@ bool Context::Init(){
 
     m_lsystem2 = LSystem::Create("X", "X=F[<X][>X]", m_treeParam, m_angle, 3, 2.0f, 2.0f);
     m_lsystem2->Move(-2.0f, -2.0f);
+
     return true;
 }
 
@@ -203,7 +206,9 @@ void Context::Render() {
             ImGui::ColorEdit3("diffuse", glm::value_ptr(m_light.diffuse));
             ImGui::ColorEdit3("specular", glm::value_ptr(m_light.specular));
             ImGui::Checkbox("blinn", &m_blinn);
+            ImGui::SameLine();
             ImGui::Checkbox("floor", &m_floor);
+            ImGui::SameLine();
             ImGui::Checkbox("scenery", &m_scenery);
         }
         ImGui::EndChild();
@@ -228,6 +233,7 @@ void Context::Render() {
             ImVec2(-FLT_MIN, ImGui::GetTextLineHeight() * 5), ImGuiInputTextFlags_AllowTabInput);
         ImGui::Separator();
         ImGui::DragInt("iteration", &m_iteration, 0.05f, 0, 4);
+        ImGui::Checkbox("sphere leaves", &m_sphereLeaves);
         if(ImGui::Button("Draw")) {
             m_model.reset();
             // m_floor = true;
@@ -264,7 +270,8 @@ void Context::Render() {
         glm::perspective(glm::radians((m_light.cutoff[0] + m_light.cutoff[1]) * 2.0f), 1.0f, 1.0f, 20.0f);
 
     if(m_newCodes){
-        m_lsystem = LSystem::Create(m_gui_axiom, m_gui_rules, m_treeParam, m_angle, m_iteration);
+        m_treeParam = { m_cylinderRadius, m_cylinderHeight, m_leafRadius, m_leafHeight, m_radiusScaling, m_heightScaling };
+        m_lsystem = LSystem::Create(m_gui_axiom, m_gui_rules, m_treeParam, m_angle, m_iteration, m_sphereLeaves);
         m_newCodes = false;
     }
 

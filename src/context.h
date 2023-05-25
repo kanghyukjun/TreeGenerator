@@ -50,6 +50,8 @@ private:
     ProgramUPtr m_leafProgram;
     ProgramUPtr m_logProgram;
 
+    // normal map
+    ProgramUPtr m_normalProgram;
 
     // material parameter
     MaterialPtr m_planeMaterial;
@@ -128,6 +130,7 @@ private:
         "C=F[--<&&FC]||[++>&&FC]||[+<^^FC]||[->^^FC]" };
     std::string m_axiom { m_gui_axiom };
     std::string m_rules { m_gui_rules };
+    bool m_sphereLeaves { false };
 
     enum Rule {
         CUSTOM_RULES,
