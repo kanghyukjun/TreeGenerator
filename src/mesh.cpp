@@ -224,7 +224,7 @@ MeshUPtr Mesh::CreateSphere(float radius) {
             float yn = sin(phi);
             float zn = cos(phi) * cos(theta);
 
-            vertices.push_back(Vertex { glm::vec3(radius * xn + radius / 2, radius * yn + radius / 2, radius * zn + radius / 2),
+            vertices.push_back(Vertex { glm::vec3(radius * xn, radius * yn + radius / 2, radius * zn),
                 glm::vec3(xn, yn, zn), glm::vec2(0.0f), glm::vec3(0.0f)});
         }
     }
@@ -246,6 +246,50 @@ MeshUPtr Mesh::CreateSphere(float radius) {
 
     return Create(vertices, indices, GL_TRIANGLES);
 }
+
+// MeshUPtr Mesh::CreateLsysLeaf(float width, float height) {
+//     std::vector<Vertex> vertices;
+//     std::vector<uint32_t> indices;
+//     int slices = 7;
+//     float rate = 0.7f;
+//     float angle = 15.0f;
+
+//     float stem = height / 4;
+//     float leaf = stem * 3;
+
+//     vertices.push_back( Vertex{glm::vec3(0.0f, 0.0f, width / 4), glm::vec3(1.0f, 0.0f ,0.0f), glm::vec2(0.0f), glm::vec3(0.0f)} );
+//     vertices.push_back( Vertex{glm::vec3(0.0f, 0.0f, -width / 4), glm::vec3(1.0f, 0.0f ,0.0f), glm::vec2(0.0f), glm::vec3(0.0f)} );
+//     vertices.push_back( Vertex{glm::vec3(0.0f, stem, width / 4), glm::vec3(1.0f, 0.0f ,0.0f), glm::vec2(0.0f), glm::vec3(0.0f)} );
+//     vertices.push_back( Vertex{glm::vec3(0.0f, stem, -width / 4), glm::vec3(1.0f, 0.0f ,0.0f), glm::vec2(0.0f), glm::vec3(0.0f)} );
+//     vertices.push_back( Vertex{glm::vec3(0.0f, 0.0f, width / 2), glm::vec3(1.0f, 0.0f ,0.0f), glm::vec2(0.0f), glm::vec3(0.0f)} );
+//     vertices.push_back( Vertex{glm::vec3(0.0f, 0.0f, -width / 2), glm::vec3(1.0f, 0.0f ,0.0f), glm::vec2(0.0f), glm::vec3(0.0f)} );
+//     vertices.push_back( Vertex{glm::vec3(0.0f, leaf, 0.0f), glm::vec3(1.0f, 0.0f ,0.0f), glm::vec2(0.0f), glm::vec3(0.0f)} );
+
+//     float length = leaf;
+//     for(int i = 1; i <= slices; i++) {
+//         float calAngle = i * angle;
+//         length *= rate;
+
+//         auto pos = glm::vec3(0.0f, sin(calAngle) * length, cos(calAngle) * length);
+//         vertices.push_back( Vertex{pos, glm::vec3(1.0f, 0.0f, 0.0f), glm::vec2(0.0f), glm::vec3(0.0f)} );
+//     }
+
+//     indices = { 0, 1, 2, 1, 3, 2,
+//                 4, 0, 2, 1, 5, 3,
+//                 2, 3, 6
+//              };
+
+//     int prev = 6;
+//     int curr = 7;
+//     for(int i = 0; i < slices; i++) {
+//         indices.push_back(prev);
+//         indices.push_back(curr);
+//         indices.push_back(2);
+//         prev = curr;
+//         curr += 1;
+//     }
+    
+// }
 
 void Material::SetToProgram(const Program* program) const {
     int textureCount = 0;

@@ -1,0 +1,18 @@
+# Dice.mtl
+
+newmtl Tree
+
+# ambient color
+Ka 0.2 0.2 0.2
+
+# diffuse color
+Kd 0.7 0.7 0.7
+
+# specular color
+Ka 0.7 0.7 0.7
+
+# Blinn-Phong shading
+illum 2
+
+# texture
+map_Kd ./tree.png

@@ -93,12 +93,6 @@ bool Context::Init(){
     m_lightingShadowProgram = Program::Create("./shader/lighting_shadow.vs", "./shader/lighting_shadow.fs");
     if (!m_lightingShadowProgram) return false;
 
-    m_logProgram = Program::Create("./shader/cylinder.vs", "./shader/cylinder.fs");
-    if(!m_logProgram) return false;
-
-    m_leafProgram = Program::Create("./shader/leaf.vs", "./shader/leaf.fs");
-    if(!m_leafProgram) return false;
-
     m_objProgram = Program::Create("./shader/obj.vs", "./shader/obj.fs");
     if(!m_objProgram) return false;
 
@@ -141,7 +135,7 @@ bool Context::Init(){
     m_lsystem = LSystem::Create("","", m_treeParam, m_angle, 0);
     if(!m_lsystem) return false;
 
-    m_lsystem2 = LSystem::Create("X", "X=F[<X][>X]", m_treeParam, m_angle, 3, 2.0f, 2.0f);
+    m_lsystem2 = LSystem::Create("X", "X=F[<X][>X]", m_treeParam, m_angle, 3, 2.0f, true);
     m_lsystem2->Move(-2.0f, -2.0f);
 
     return true;
@@ -176,7 +170,7 @@ void Context::Render() {
     // 만약 사용자가 Save 메뉴를 선택했다면
     m_fileDialogSave.Display();
     if(m_fileDialogSave.HasSelected()) {
-        SaveObject(m_fileDialogSave);
+        SaveObject(m_fileDialogSave, m_lsystem);
     }
     m_fileDialogSave.ClearSelected();
 
@@ -224,15 +218,15 @@ void Context::Render() {
         ImGui::DragFloat("tree length", &m_gui_length, 0.03f, 0.3f, 2.0f);
         ImGui::Separator();
         ImGui::Text("leaf");
-        ImGui::DragFloat("leaf radius", &m_gui_leaf_radius, 0.005f, 0.1f, 0.3f);
-        ImGui::DragFloat("leaf length", &m_gui_leaf_height, 0.005f, 0.1f, 0.3f);
+        ImGui::DragFloat("leaf radius", &m_gui_leaf_radius, 0.005f, 0.05f, 0.3f);
+        ImGui::DragFloat("leaf length", &m_gui_leaf_height, 0.005f, 0.05f, 0.3f);
         ImGui::Separator();
         ImGui::InputText("axiom", m_gui_axiom, sizeof(m_gui_axiom));
         ImGui::Combo("rules", &m_currentItem, m_comboItems, NUM_RULES);
         ImGui::InputTextMultiline("##rules", m_gui_rules, IM_ARRAYSIZE(m_gui_rules),
             ImVec2(-FLT_MIN, ImGui::GetTextLineHeight() * 5), ImGuiInputTextFlags_AllowTabInput);
         ImGui::Separator();
-        ImGui::DragInt("iteration", &m_iteration, 0.05f, 0, 4);
+        ImGui::DragInt("iteration", &m_iteration, 0.05f, 0, 5);
         ImGui::Checkbox("sphere leaves", &m_sphereLeaves);
         if(ImGui::Button("Draw")) {
             m_model.reset();
@@ -378,11 +372,10 @@ void Context::SetRules() {
         break;
 
     case BUSH_LIKE:
-        strcpy_s(m_gui_axiom, sizeof(m_gui_axiom), "XXA");
+        strcpy_s(m_gui_axiom, sizeof(m_gui_axiom), "FFA");
         strcpy_s(m_gui_rules, sizeof(m_gui_rules),
-            "A=[&XFC]++++[&XFC]++++[&XFC]\n"\
-            "F=[&X[X]&X]\n"\
-            "C=X[--<&&XC]++++[++>&&XC]++++[->^^XC]");
+            "A=[C]++++[C]++++[C]\n"\
+            "C=&FFA");
         break;
 
     case BINARYTREE:
@@ -398,8 +391,8 @@ void Context::SetRules() {
 // 회전 후 이동 -> 이동행렬 * 회전행렬 (순서)
 void Context::DrawTree(const glm::mat4& projection, const glm::mat4& view, const Program* treeProgram, const Program* leafProgram) {
     glEnable(GL_BLEND);
-    m_lsystem->Draw(projection, view, treeProgram, leafProgram);
-    m_lsystem2->Draw(projection, view, treeProgram, leafProgram);
+    m_lsystem->Draw(projection, view);
+    // m_lsystem2->Draw(projection, view);
 }
 
 void Context::Clear() {
@@ -443,8 +436,8 @@ void Context::OpenObject(ImGui::FileBrowser file) {
     Clear();
 }
 
-void Context::SaveObject(ImGui::FileBrowser file) {
-    if(m_lsystem->isEmpty()) {
+void Context::SaveObject(ImGui::FileBrowser file, const LSystemUPtr& tree) {
+    if(tree->isEmpty()) {
         SPDLOG_ERROR("Create tree object before saving *.obj");
         return;
     }
@@ -458,24 +451,27 @@ void Context::SaveObject(ImGui::FileBrowser file) {
             num = std::to_string(i);
             i++;
         }
-        filename += "(" + num + ")" +".obj";
-    }
-    else{
-        filename += ".obj";
+        filename += "(" + num + ")";
     }
 
-    std::ofstream out(selected + "\\" + filename);
-    if(WriteToFile(out))
+    if(WriteToFile(selected, filename, tree))
         SPDLOG_INFO("File saved : {}", selected + "\\" + filename);
-    out.close();
 }
 
-bool Context::WriteToFile(std::ofstream& out) {
-    if (!out.is_open()) {
-        SPDLOG_ERROR("Failed to open file : {}", std::to_string(out.tellp()));
-        return false;
-    }
-    m_lsystem->ExportObj(out);
+bool Context::WriteToFile(std::string selected, std::string filename, const LSystemUPtr& tree) {
+    std::ofstream outObj(selected + "\\" + filename + ".obj");
+    std::ofstream outMtl(selected + "\\" + filename + ".mtl");
+    std::string texturePath = selected + "/" + filename + ".png";
+
+    if(!tree->ExportObj(outObj, filename))
+        SPDLOG_ERROR("Faile to export file : {}", selected + "\\" + filename + ".obj");
+    if(!tree->ExportMtl(outMtl, filename))
+        SPDLOG_ERROR("Faile to export file : {}", selected + "\\" + filename + ".mtl");
+    // if(!tree->ExportTexture(texturePath.c_str()))
+    //     SPDLOG_ERROR("Faile to export file : {}", selected + "\\" + filename + ".png");
+
+    outObj.close();
+    outMtl.close();
     return true;
 }
 

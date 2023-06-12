@@ -35,8 +35,9 @@ private:
     bool Init();
     void Clear();
     void OpenObject(ImGui::FileBrowser file);
-    void SaveObject(ImGui::FileBrowser file);
-    bool WriteToFile(std::ofstream& out);
+    void SaveObject(ImGui::FileBrowser file, const LSystemUPtr& tree);
+    // bool WriteToFile(std::ofstream& out);
+    bool WriteToFile(std::string selected, std::string filename, const LSystemUPtr& tree);
     void SetRules();
 
     ProgramUPtr m_program;

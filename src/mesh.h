@@ -41,6 +41,7 @@ public:
     static MeshUPtr CreateCylinder(float radius = 0.5f, float height = 1.0f, float rate = 1.0f);
     static MeshUPtr CreateLeaf(float width = 0.1f, float height = 0.1f);
     static MeshUPtr CreateSphere(float radius = 0.1f);
+    static MeshUPtr CreateLsysLeaf(float width = 0.02f, float height = 0.1f);
 
     const VertexLayout* GetVertexLayout() const { return m_vertexLayout.get(); }
     BufferPtr GetVertexBuffer() const { return m_vertexBuffer; }

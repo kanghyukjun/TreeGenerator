@@ -48,7 +48,14 @@ bool LSystem::Init(std::string axiom, std::string rules, std::vector<float> tree
 
     m_leafTexture = Texture::CreateFromImage(Image::Load("./image/leaf2.png").get());
     m_greenTexture = Texture::CreateFromImage(Image::CreateSingleColorImage(4, 4, glm::vec4(0.27f, 0.334f, 0.118f, 1.0f)).get());
-    m_treeTexture = Texture::CreateFromImage(Image::Load("./image/tree.png").get());
+    m_treeImage = Image::Load("./image/tree.png");
+    m_treeTexture = Texture::CreateFromImage(m_treeImage.get());
+
+    m_logProgram = Program::Create("./shader/cylinder.vs", "./shader/cylinder.fs");
+    if(!m_logProgram) return false;
+
+    m_leafProgram = Program::Create("./shader/leaf.vs", "./shader/leaf.fs");
+    if(!m_leafProgram) return false;
 
     return true;
 }
@@ -63,7 +70,13 @@ std::string LSystem::MakeCodes() {
     std::vector<std::string> X;
     std::vector<std::string> A;
     std::vector<std::string> C;
+
+    bool FCheck = false;
+    bool XCheck = false;
+    bool ACheck = false;
+    bool CCheck = false;
     
+    // 각 벡터에 변환 규칙을 삽입
     for(int i=0; i<m_codesVector.size(); i++) {
         tmp = m_codesVector[i];
         std::size_t pos = tmp.rfind('=');
@@ -82,12 +95,18 @@ std::string LSystem::MakeCodes() {
             C.push_back(replace);
     }
 
-    std::string result = m_axiom;
-    std::string new_str;
-    auto ReplaceString = [&](char replace, std::vector<std::string> vector) {
+    std::string result = m_axiom; // 치환될 문자열
+    std::string new_str; // 규칙 문자열
+
+    auto StringCheck = [] (char replace, std::string str) -> bool {
+        if(str.find(replace) == std::string::npos) return false;
+        return true;
+    };
+
+    auto ReplaceString = [&result, &new_str, &gen] (char replace, std::vector<std::string> vector, bool check) {
         size_t pos = 0;
         while ((pos = result.find(replace, pos)) != std::string::npos) {
-            if(vector.empty()) break;
+            if(vector.empty() || !check) break;
             else if(vector.size() == 1) {
                 new_str = vector[0];
             }
@@ -102,19 +121,22 @@ std::string LSystem::MakeCodes() {
     };
 
     for(int i = 0; i < m_iteration; i++) {
-        ReplaceString('F', F);
-        ReplaceString('X', X);
-        ReplaceString('A', A);
-        ReplaceString('C', C);
+        FCheck = StringCheck('F', result);
+        XCheck = StringCheck('X', result);
+        ACheck = StringCheck('A', result);
+        CCheck = StringCheck('C', result);
+
+        ReplaceString('F', F, FCheck);
+        ReplaceString('X', X, XCheck);
+        ReplaceString('A', A, ACheck);
+        ReplaceString('C', C, CCheck);
     }
 
     return result;
 }
 
 void LSystem::MakeLeafMatrices(glm::mat4 matrices, glm::mat4 scaling, std::vector<glm::mat4>& vector) {
-    glm::mat4 translate;
-    if(m_isSphere) translate = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, m_cylinderRadius / -2.0f, 0.0f));
-    else translate = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, m_cylinderHeight / -2.0f, 0.0f));
+    auto translate = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, m_cylinderHeight / -2.0f, 0.0f));
     vector.push_back(matrices * translate * scaling);
 }
 
@@ -175,9 +197,9 @@ void LSystem::MakeCylinderMatrices(float xCoord, float zCoord) {
                 1.0f / m_heightScaling, 1.0f / m_radiusScaling));
             scalingStack.pushMatrix(scalingInverse);
 
-            randomNum = static_cast<int>(floor((normalDistFrontGen(gen))));
-            if(randomNum == 0 && !stack.isEmpty() && !scalingStack.isEmpty())
-                MakeLeafMatrices(stack.getCurrentMatrix(), scalingStack.getCurrentMatrix(), leafMatrices);
+            // randomNum = static_cast<int>(floor((normalDistFrontGen(gen))));
+            // if(randomNum == 0 && !stack.isEmpty() && !scalingStack.isEmpty())
+            //     MakeLeafMatrices(stack.getCurrentMatrix(), scalingStack.getCurrentMatrix(), leafMatrices);
             break;
 
         case '+':
@@ -251,36 +273,36 @@ void LSystem::MakeCylinderMatrices(float xCoord, float zCoord) {
     m_leafVector = leafMatrices;
 }
 
-void LSystem::Draw(const glm::mat4& projection, const glm::mat4& view, const Program* treeProgram, const Program* leafProgram) const {
+void LSystem::Draw(const glm::mat4& projection, const glm::mat4& view) const {
     if(!m_codes.empty()) {
-        treeProgram->Use();
-        treeProgram->SetUniform("tex", 0);
+        m_logProgram->Use();
+        m_logProgram->SetUniform("tex", 0);
         // m_brownTexture->Bind();
         m_treeTexture->Bind();
 
         for(int i=0; i<m_cylinderVector.size(); i++) {
             auto transform = projection * view * m_cylinderVector[i] * glm::translate(glm::mat4(1.0f),
                 glm::vec3(0.0f, -1.0f * m_cylinderHeight, 0.0f));
-            treeProgram->SetUniform("transform", transform);
-            // treeProgram->SetUniform("color", glm::vec3(0.6f, 0.4f, 0.2f));
+            m_logProgram->SetUniform("transform", transform);
+            // m_logProgram->SetUniform("color", glm::vec3(0.6f, 0.4f, 0.2f));
             // treeProgram->SetUniform("modelTransform", m_modelMatrices[i]);
-            m_log->Draw(treeProgram);
+            m_log->Draw(m_logProgram.get());
         }
 
-        leafProgram->Use();
-        leafProgram->SetUniform("tex", 0);
+        m_leafProgram->Use();
+        m_leafProgram->SetUniform("tex", 0);
         if(m_isSphere) {
             m_greenTexture->Bind();
             for(int i=0; i<m_leafVector.size(); i++){
-                leafProgram->SetUniform("transform", projection * view * m_leafVector[i]);
-                m_sphere->Draw(leafProgram);
+                m_leafProgram->SetUniform("transform", projection * view * m_leafVector[i]);
+                m_sphere->Draw(m_leafProgram.get());
             }
         }
         else {
             m_treeTexture->Bind();
             for(int i=0; i<m_leafVector.size(); i++){
-                leafProgram->SetUniform("transform", projection * view * m_leafVector[i]);
-                m_leaf->Draw(leafProgram);
+                m_leafProgram->SetUniform("transform", projection * view * m_leafVector[i]);
+                m_leaf->Draw(m_leafProgram.get());
             }
         }
     }
@@ -294,7 +316,7 @@ void LSystem::Move(float xCoord, float zCoord) {
     MakeCylinderMatrices(xCoord, zCoord);
 }
 
-bool LSystem::ExportObj(std::ofstream& out) {
+bool LSystem::ExportObj(std::ofstream& out, std::string material) {
     if (!out.is_open()) {
         SPDLOG_ERROR("Failed to open file : {}", std::to_string(out.tellp()));
         return false;
@@ -335,7 +357,10 @@ bool LSystem::ExportObj(std::ofstream& out) {
         }
     }
 
-    out << "# tree generator\n";
+    out << "# tree generator\n\n";
+    out << "# material\n";
+    out << "mtllib ./" + material + ".mtl\n";
+
     out << "o Cylinder\n";
     out << "# vertex coordinates\n";
     for(int i=0; i<v.size(); i++) {
@@ -353,6 +378,7 @@ bool LSystem::ExportObj(std::ofstream& out) {
     }
 
     out << "\n# face\n";
+    out << "usemtl Tree\n";
     for(int i=0; i<f.size(); i++) {
         out << "f "
                 << std::get<0>(f[i]) << "/" << std::get<0>(f[i]) << "/" << std::get<0>(f[i]) << " "
@@ -448,6 +474,7 @@ bool LSystem::ExportObj(std::ofstream& out) {
     }
 
     out << "\n# face\n";
+    out << "usemtl Tree\n";
     for(int i=0; i<f.size(); i++) {
         out << "f "
                 << std::get<0>(f[i]) << "/" << std::get<0>(f[i]) << "/" << std::get<0>(f[i]) << " "
@@ -456,5 +483,39 @@ bool LSystem::ExportObj(std::ofstream& out) {
                 << "\n";
     }
 
+    return true;
+}
+
+bool LSystem::ExportMtl(std::ofstream& out, std::string texture) {
+    if (!out.is_open()) {
+        SPDLOG_ERROR("Failed to open file : {}", std::to_string(out.tellp()));
+        return false;
+    }
+
+    out << "# Dice.mtl\n\n";
+
+    out << "newmtl Tree\n\n";
+
+    out << "# ambient color\n";
+    out << "Ka 0.2 0.2 0.2\n\n";
+
+    out << "# diffuse color\n";
+    out << "Kd 0.7 0.7 0.7\n\n";
+
+    out << "# specular color\n";
+    out << "Ka 0.7 0.7 0.7\n\n";
+
+    out << "# Blinn-Phong shading\n";
+    out << "illum 2\n\n";
+
+    out << "# texture\n";
+    // out << "map_Kd ./" + texture + ".png\n";
+    out << "map_Kd ./tree.png\n";
+
+    return true;
+}
+
+bool LSystem::ExportTexture(const char* imageOutputPath) {
+    m_treeImage->SaveImage(imageOutputPath);
     return true;
 }

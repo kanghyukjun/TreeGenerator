@@ -17,6 +17,7 @@ public:
     int GetChannelCount() const { return m_channelCount; }
 
     void SetCheckImage(int gridX, int gridY);
+    bool SaveImage(const char* path);
 
 private:
     Image() {};

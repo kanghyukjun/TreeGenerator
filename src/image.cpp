@@ -1,6 +1,8 @@
 #include "image.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb/stb_image.h>
+#include <stb/stb_image_write.h>
+#include <string>
 
 ImageUPtr Image::Load(const std::string& filepath, bool flipVertical) {
     auto image = ImageUPtr(new Image());
@@ -52,6 +54,12 @@ void Image::SetCheckImage(int gridX, int gridY) {
                 m_data[pos + 3] = 255;
         }
     }
+}
+
+bool Image::SaveImage(const char* path) {
+    // stbi_write_png(path, m_width, m_height, m_channelCount, m_data, m_width * m_channelCount);
+
+    return true;
 }
 
 ImageUPtr Image::CreateSingleColorImage(int width, int height, const glm::vec4& color) {

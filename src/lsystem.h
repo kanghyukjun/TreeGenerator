@@ -27,9 +27,11 @@ public:
     std::string GetRules() { return m_rules; }
     std::string GetCodes() { return m_codes; }
     bool isEmpty() { return m_codes.empty(); }
-    void Draw(const glm::mat4& projection, const glm::mat4& view, const Program* treeProgram, const Program* leafProgram) const;
+    void Draw(const glm::mat4& projection, const glm::mat4& view) const;
     void Move(float xCoord, float zCoord);
-    bool ExportObj(std::ofstream& out);
+    bool ExportObj(std::ofstream& out, std::string material);
+    bool ExportMtl(std::ofstream& out, std::string texture);
+    bool ExportTexture(const char* imageOutputPath);
 
 private:
     LSystem() {};
@@ -39,10 +41,14 @@ private:
     void MakeCylinderMatrices(float xCoord = 0.0f, float zCoord = 0.0f);
     void MakeLeafMatrices(glm::mat4 matrices, glm::mat4 scaling, std::vector<glm::mat4>& vector);
 
+    ProgramUPtr m_logProgram;
+    ProgramUPtr m_leafProgram;
+
     MeshUPtr m_log;
     MeshUPtr m_leaf;
     MeshUPtr m_sphere;
 
+    ImageUPtr m_treeImage;
     TexturePtr m_leafTexture;
     TexturePtr m_greenTexture;
     TexturePtr m_treeTexture;
