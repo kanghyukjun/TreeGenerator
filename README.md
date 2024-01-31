@@ -1,7 +1,5 @@
 # 🌳 L-system 3D 나무 모델 생성기
 
----
-
 졸업 과제로 진행했던 나무 모델 생성 프로젝트 입니다. OpenGL을 활용해 3D 모델을 생성하였습니다.
 
 Rinthel Kwon님의 [OpenGL 강의 영상](https://www.youtube.com/@rinthel) 내용과 코드를 참고하였습니다.
@@ -9,8 +7,6 @@ Rinthel Kwon님의 [OpenGL 강의 영상](https://www.youtube.com/@rinthel) 내�
 [![youtube](https://github.com/kanghyukjun/TreeGenerator/blob/main/image/youtube.png)](https://youtu.be/kEAKvJKnvfA)
 
 ## ⏰ 개발 기간
-
----
 
 - 2023.03.08 (수) ~ 2023.06.13 (화)
 - 주제 선정
@@ -20,8 +16,6 @@ Rinthel Kwon님의 [OpenGL 강의 영상](https://www.youtube.com/@rinthel) 내�
 - L-System 기반 나무 모델 생성
 
 ## 🔧 주요 기능 설명
-
----
 
 ### 메인 화면
 
