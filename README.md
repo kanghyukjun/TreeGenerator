@@ -6,7 +6,7 @@
 
 Rinthel Kwon님의 [OpenGL 강의 영상](https://www.youtube.com/@rinthel) 내용과 코드를 참고하였습니다.
 
-<iframe width="560" height="315" src="https://www.youtube.com/embed/kEAKvJKnvfA?si=gkuSXw9JIizWdr6b" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+[![youtube](https://github.com/kanghyukjun/TreeGenerator/blob/main/image/youtube.png)](https://youtu.be/kEAKvJKnvfA)
 
 ## ⏰ 개발 기간
 
